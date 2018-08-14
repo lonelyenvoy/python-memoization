@@ -10,7 +10,7 @@ def factorial(n):
     return n * factorial(n - 1)
 
 
-@memoization.cache()
+@memoization.cached()
 def quick_factorial(n):
     if n <= 0:
         return 0

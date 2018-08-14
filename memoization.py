@@ -5,7 +5,7 @@ _cache = {}
 _access_count = {}
 
 
-def cache(max_items=None):
+def cached(max_items=None):
     def decorator(func):
         # type checks
         if not hasattr(func, '__call__'):

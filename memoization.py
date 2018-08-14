@@ -38,16 +38,17 @@ def cached(max_items=None):
 
 def clean(safe_access_count=1, func=None):
     if func is None:
-        for func, counter in _access_count:
+        for function_id, counter in _access_count:
             for input_args, count in counter:
                 if count < safe_access_count:
-                    del _cache[func][input_args]
+                    del _cache[function_id][input_args]
     else:
-        if func not in _access_count:
+        function_id = id(func)
+        if function_id not in _access_count:
             raise NameError('Function <' + func + '> not found')
         for input_args, count in _access_count[func]:
             if count < safe_access_count:
-                del _cache[func][input_args]
+                del _cache[function_id][input_args]
 
 
 def clear(func=None):

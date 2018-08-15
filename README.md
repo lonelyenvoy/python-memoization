@@ -1,9 +1,12 @@
 # python-memoization
 
-[![auc][aucsvg]][auc] [![License][licensesvg]][license]
+[![auc][aucsvg]][auc] [![repository][repositorysvg]][repository] [![License][licensesvg]][license]
 
 [aucsvg]: https://img.shields.io/badge/memoization-v0.0.6-brightgreen.svg
 [auc]: https://github.com/lonelyenvoy/python-memoization
+
+[repositorysvg]: https://img.shields.io/badge/PyPI-latest-blue.svg
+[repository]: https://pypi.org/project/memoization
 
 [licensesvg]: https://img.shields.io/badge/License-MIT-blue.svg
 [license]: https://github.com/lonelyenvoy/python-memoization/blob/master/LICENSE

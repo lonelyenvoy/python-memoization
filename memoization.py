@@ -1,4 +1,3 @@
-import sys
 import inspect
 import warnings
 from functools import wraps
@@ -37,21 +36,16 @@ def cached(max_items=None):
 
 
 def clean(safe_access_count=1, func=None):
+    def del_unit(func_id, cache_value_items):
+        for input_args, cache_unit in cache_value_items:
+            if cache_unit['access_count'] < safe_access_count:
+                del _cache[func_id][input_args]
+
     if func is None:
         for function_id, specified_cache in _cache.items():
-            for input_args, cache_unit in specified_cache.items():
-                if cache_unit['access_count'] < safe_access_count:
-                    del _cache[function_id][input_args]
+            del_unit(function_id, specified_cache.items())
     else:
-        function_id = id(_retrieve_undecorated_function(func))
-        if function_id not in _cache.keys():  # panic
-            if not _is_function(func):
-                raise TypeError(str(func) + ' is not a function')
-            else:
-                raise NameError('Function <' + func.__name__ + '> not found')
-        for input_args, cache_unit in _cache[function_id].items():
-            if cache_unit['access_count'] < safe_access_count:
-                del _cache[function_id][input_args]
+        del_unit(_retrieve_safe_function_id(func), _cache[_retrieve_safe_function_id(func)].items())
 
 
 def clear(func=None):
@@ -59,17 +53,16 @@ def clear(func=None):
         for item in _cache.values():
             item.clear()
     else:
-        function_id = id(_retrieve_undecorated_function(func))
-        if function_id not in _cache.keys():  # panic
-            if not _is_function(func):
-                raise TypeError(str(func) + ' is not a function')
-            else:
-                raise NameError('Function <' + func.__name__ + '> not found')
-        _cache[function_id].clear()
+        _cache[_retrieve_safe_function_id(func)].clear()
 
 
-def size():
-    return sys.getsizeof(_cache)
+def size(func=None):
+    if func is None:
+        return reduce(lambda accumulation, cache_value: len(accumulation) + len(cache_value)
+                      if isinstance(accumulation, dict) else accumulation + len(cache_value),
+                      _cache.values())
+    else:
+        return len(_cache[_retrieve_safe_function_id(func)])
 
 
 def _hashable_args(args, kwargs):
@@ -88,3 +81,17 @@ def _retrieve_undecorated_function(func):
         raise TypeError('Unable to retrieve the undecorated function: The function '
                         + func.__name__ + ' is not decorated')
     return func.func_closure[0].cell_contents
+
+
+def _error_unrecognized_function(func):
+    if not _is_function(func):
+        raise TypeError(str(func) + ' is not a function')
+    else:
+        raise NameError('Function <' + func.__name__ + '> not found')
+
+
+def _retrieve_safe_function_id(func):
+    function_id = id(_retrieve_undecorated_function(func))
+    if function_id not in _cache.keys():  # panic
+        _error_unrecognized_function(func)
+    return function_id

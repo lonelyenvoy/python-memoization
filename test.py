@@ -191,12 +191,25 @@ class TestMemoization(unittest.TestCase):
         self.assertEqual(memoization._cache.get(self._wrapped_func_id(self.f.add)), {})
         self.assertEqual(memoization._cache.get(self._wrapped_func_id(self.f.subtract)), {})
 
-    def test_size(self):
+    def test_size_with_func_restriction(self):
         """
-        Test memoization.size
-        TODO implement this function
+        Test memoization.size with func restriction
         """
-        raise NotImplementedError
+        self._make_cache()
+        self.assertEqual(memoization.size(self.f.add), 3)
+        self.assertEqual(memoization.size(self.f.subtract), 3)
+        memoization.clear()
+        self.assertEqual(memoization.size(self.f.add), 0)
+        self.assertEqual(memoization.size(self.f.subtract), 0)
+
+    def test_size_without_restriction(self):
+        """
+        Test memoization.size with default arguments
+        """
+        self._make_cache()
+        self.assertEqual(memoization.size(), 6)
+        memoization.clear()
+        self.assertEqual(memoization.size(), 0)
 
 
 if __name__ == '__main__':

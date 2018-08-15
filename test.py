@@ -65,6 +65,12 @@ class TestMemoization(unittest.TestCase):
 
     @staticmethod
     def _make_cache_value(result, access_count):
+        """
+        Convert result and access_count to cache value
+        :param result: cache result
+        :param access_count: cache access count
+        :return: cache value
+        """
         return {'result': result, 'access_count': access_count}
 
     def test_cache(self):
@@ -74,9 +80,11 @@ class TestMemoization(unittest.TestCase):
 
         # test add
         self.assertEqual(self.f.add(1, 2), 3)
-        self.assertEqual(memoization._cache.get(self._wrapped_func_id(self.f.add)), {self._make_cache_key(1, 2): self._make_cache_value(3, 0)})
+        self.assertEqual(memoization._cache.get(self._wrapped_func_id(self.f.add)),
+                         {self._make_cache_key(1, 2): self._make_cache_value(3, 0)})
         self.assertEqual(self.f.add(1, 2), 3)
-        self.assertEqual(memoization._cache.get(self._wrapped_func_id(self.f.add)), {self._make_cache_key(1, 2): self._make_cache_value(3, 1)})
+        self.assertEqual(memoization._cache.get(self._wrapped_func_id(self.f.add)),
+                         {self._make_cache_key(1, 2): self._make_cache_value(3, 1)})
 
         # test function_with_side_effects
         self.assertEqual(self.f.function_with_side_effects(1), 1)
@@ -102,8 +110,14 @@ class TestMemoization(unittest.TestCase):
         Test self._make_cache
         """
         self._make_cache()
-        self.assertEqual(memoization._cache.get(self._wrapped_func_id(self.f.add)),             {self._make_cache_key(1, 2): self._make_cache_value(3, 5), self._make_cache_key(3, 4): self._make_cache_value(7, 4), self._make_cache_key(5, 6): self._make_cache_value(11, 0)})
-        self.assertEqual(memoization._cache.get(self._wrapped_func_id(self.f.subtract)),        {self._make_cache_key(10, 5): self._make_cache_value(5, 5), self._make_cache_key(20, 10): self._make_cache_value(10, 4), self._make_cache_key(30, 20): self._make_cache_value(10, 0)})
+        self.assertEqual(memoization._cache.get(self._wrapped_func_id(self.f.add)),
+                         {self._make_cache_key(1, 2): self._make_cache_value(3, 5),
+                          self._make_cache_key(3, 4): self._make_cache_value(7, 4),
+                          self._make_cache_key(5, 6): self._make_cache_value(11, 0)})
+        self.assertEqual(memoization._cache.get(self._wrapped_func_id(self.f.subtract)),
+                         {self._make_cache_key(10, 5): self._make_cache_value(5, 5),
+                          self._make_cache_key(20, 10): self._make_cache_value(10, 4),
+                          self._make_cache_key(30, 20): self._make_cache_value(10, 0)})
 
     def test_clean_with_safe_access_count_and_func_restriction(self):
         """
@@ -111,8 +125,12 @@ class TestMemoization(unittest.TestCase):
         """
         self._make_cache()
         memoization.clean(safe_access_count=5, func=self.f.add)
-        self.assertEqual(memoization._cache.get(self._wrapped_func_id(self.f.add)), {self._make_cache_key(1, 2): self._make_cache_value(3, 5)})
-        self.assertEqual(memoization._cache.get(self._wrapped_func_id(self.f.subtract)), {self._make_cache_key(10, 5): self._make_cache_value(5, 5), self._make_cache_key(20, 10): self._make_cache_value(10, 4), self._make_cache_key(30, 20): self._make_cache_value(10, 0)})
+        self.assertEqual(memoization._cache.get(self._wrapped_func_id(self.f.add)),
+                         {self._make_cache_key(1, 2): self._make_cache_value(3, 5)})
+        self.assertEqual(memoization._cache.get(self._wrapped_func_id(self.f.subtract)),
+                         {self._make_cache_key(10, 5): self._make_cache_value(5, 5),
+                          self._make_cache_key(20, 10): self._make_cache_value(10, 4),
+                          self._make_cache_key(30, 20): self._make_cache_value(10, 0)})
 
     def test_clean_with_safe_access_count_restriction(self):
         """
@@ -120,8 +138,10 @@ class TestMemoization(unittest.TestCase):
         """
         self._make_cache()
         memoization.clean(safe_access_count=5)
-        self.assertEqual(memoization._cache.get(self._wrapped_func_id(self.f.add)), {self._make_cache_key(1, 2): self._make_cache_value(3, 5)})
-        self.assertEqual(memoization._cache.get(self._wrapped_func_id(self.f.subtract)), {self._make_cache_key(10, 5): self._make_cache_value(5, 5)})
+        self.assertEqual(memoization._cache.get(self._wrapped_func_id(self.f.add)),
+                         {self._make_cache_key(1, 2): self._make_cache_value(3, 5)})
+        self.assertEqual(memoization._cache.get(self._wrapped_func_id(self.f.subtract)),
+                         {self._make_cache_key(10, 5): self._make_cache_value(5, 5)})
 
     def test_clean_with_func_restriction(self):
         """
@@ -129,8 +149,13 @@ class TestMemoization(unittest.TestCase):
         """
         self._make_cache()
         memoization.clean(func=self.f.add)
-        self.assertEqual(memoization._cache.get(self._wrapped_func_id(self.f.add)), {self._make_cache_key(1, 2): self._make_cache_value(3, 5), self._make_cache_key(3, 4): self._make_cache_value(7, 4)})
-        self.assertEqual(memoization._cache.get(self._wrapped_func_id(self.f.subtract)), {self._make_cache_key(10, 5): self._make_cache_value(5, 5), self._make_cache_key(20, 10): self._make_cache_value(10, 4), self._make_cache_key(30, 20): self._make_cache_value(10, 0)})
+        self.assertEqual(memoization._cache.get(self._wrapped_func_id(self.f.add)),
+                         {self._make_cache_key(1, 2): self._make_cache_value(3, 5),
+                          self._make_cache_key(3, 4): self._make_cache_value(7, 4)})
+        self.assertEqual(memoization._cache.get(self._wrapped_func_id(self.f.subtract)),
+                         {self._make_cache_key(10, 5): self._make_cache_value(5, 5),
+                          self._make_cache_key(20, 10): self._make_cache_value(10, 4),
+                          self._make_cache_key(30, 20): self._make_cache_value(10, 0)})
 
     def test_clean_without_restriction(self):
         """
@@ -138,8 +163,12 @@ class TestMemoization(unittest.TestCase):
         """
         self._make_cache()
         memoization.clean()
-        self.assertEqual(memoization._cache.get(self._wrapped_func_id(self.f.add)), {self._make_cache_key(1, 2): self._make_cache_value(3, 5), self._make_cache_key(3, 4): self._make_cache_value(7, 4)})
-        self.assertEqual(memoization._cache.get(self._wrapped_func_id(self.f.subtract)), {self._make_cache_key(10, 5): self._make_cache_value(5, 5), self._make_cache_key(20, 10): self._make_cache_value(10, 4)})
+        self.assertEqual(memoization._cache.get(self._wrapped_func_id(self.f.add)),
+                         {self._make_cache_key(1, 2): self._make_cache_value(3, 5),
+                          self._make_cache_key(3, 4): self._make_cache_value(7, 4)})
+        self.assertEqual(memoization._cache.get(self._wrapped_func_id(self.f.subtract)),
+                         {self._make_cache_key(10, 5): self._make_cache_value(5, 5),
+                          self._make_cache_key(20, 10): self._make_cache_value(10, 4)})
 
     def test_clear_with_func_restriction(self):
         """
@@ -148,7 +177,10 @@ class TestMemoization(unittest.TestCase):
         self._make_cache()
         memoization.clear(func=self.f.add)
         self.assertEqual(memoization._cache.get(self._wrapped_func_id(self.f.add)), {})
-        self.assertEqual(memoization._cache.get(self._wrapped_func_id(self.f.subtract)), {self._make_cache_key(10, 5): self._make_cache_value(5, 5), self._make_cache_key(20, 10): self._make_cache_value(10, 4), self._make_cache_key(30, 20): self._make_cache_value(10, 0)})
+        self.assertEqual(memoization._cache.get(self._wrapped_func_id(self.f.subtract)),
+                         {self._make_cache_key(10, 5): self._make_cache_value(5, 5),
+                          self._make_cache_key(20, 10): self._make_cache_value(10, 4),
+                          self._make_cache_key(30, 20): self._make_cache_value(10, 0)})
 
     def test_clear_without_restriction(self):
         """

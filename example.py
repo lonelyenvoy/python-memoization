@@ -3,31 +3,31 @@ import timeit
 
 
 def factorial(n):
-    if n <= 0:
-        return 0
-    if n == 1:
+    assert n >= 0
+    if n == 0 or n == 1:
         return 1
     return n * factorial(n - 1)
 
 
 @cached()
 def quick_factorial(n):
-    if n <= 0:
-        return 0
-    if n == 1:
+    assert n >= 0
+    if n == 0 or n == 1:
         return 1
     return n * quick_factorial(n - 1)
 
 
 def test1():
-    factorial(100)
+    for i in range(1, 100):
+        factorial(i)
 
 
 def test2():
-    quick_factorial(100)
+    for i in range(1, 100):
+        quick_factorial(i)
 
 
-test_times = 100000
+test_times = 1000
 time1 = timeit.timeit(test1, number=test_times) / test_times
 time2 = timeit.timeit(test2, number=test_times) / test_times
 

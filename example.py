@@ -1,4 +1,4 @@
-import memoization
+from memoization import cached
 import timeit
 
 
@@ -10,7 +10,7 @@ def factorial(n):
     return n * factorial(n - 1)
 
 
-@memoization.cached()
+@cached()
 def quick_factorial(n):
     if n <= 0:
         return 0

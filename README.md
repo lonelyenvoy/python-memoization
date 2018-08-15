@@ -1,5 +1,11 @@
 # python-memoization
-A minimalist functional caching lib for Python
+A minimalist functional caching lib for Python, with TTL and auto memory management support.
+
+## Installation
+
+```bash
+pip install memoization
+```
 
 ## Usage in 2 lines
 

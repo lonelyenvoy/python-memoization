@@ -5,7 +5,7 @@ import json
 import time
 from functools import wraps
 
-__version__ = 'v0.0.3'
+__version__ = '0.0.6'
 _cache = {}
 
 
@@ -185,5 +185,6 @@ def _retrieve_safe_function_id(func):
 
 if __name__ == '__main__':
     import sys
-    sys.stderr.write('python-memoization ' + __version__ + ': A minimalist functional caching lib for Python\n')
+    sys.stderr.write('python-memoization v' + __version__ +
+                     ': A minimalist functional caching lib for Python, with TTL and auto memory management support.\n')
     sys.stderr.write('Go to https://github.com/lonelyenvoy/python-memoization for usage and more details.\n')

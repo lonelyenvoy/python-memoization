@@ -1,20 +1,3 @@
-# import memoization
-#
-#
-# @memoization.cached()
-# def f(a):
-#     return a + 1
-#
-#
-# result = f(2)
-# f(3)
-# f(4)
-# f(5)
-# f(2)
-# # memoization.clear(f)
-# print result
-# print memoization.size()
-
 import memoization
 from memoization import cached
 import unittest

@@ -3,6 +3,7 @@ import inspect
 import warnings
 from functools import wraps
 
+__version__ = 'v0.0.2'
 _cache = {}
 
 
@@ -166,3 +167,9 @@ def _retrieve_safe_function_id(func):
     if function_id not in _cache.keys():  # panic
         _error_unrecognized_function(func)
     return function_id
+
+
+if __name__ == '__main__':
+    import sys
+    sys.stderr.write('python-memoization ' + __version__ + ': A minimalist functional memoization lib for Python\n')
+    sys.stderr.write('Go to https://github.com/lonelyenvoy/python-memoization for usage and more details.\n')

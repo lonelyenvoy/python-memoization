@@ -1,5 +1,6 @@
 import sys
 import inspect
+from functools import wraps
 
 _cache = {}
 _access_count = {}
@@ -19,6 +20,7 @@ def cached(max_items=None):
         _cache[initial_function_id] = {}
         _access_count[initial_function_id] = {}
 
+        @wraps(func)
         def wrapper(*args, **kwargs):
             input_args = _hashable_args(args, kwargs)
             function_id = id(func)
@@ -58,8 +60,10 @@ def clean(safe_access_count=1, func=None):
 
 def clear(func=None):
     if func is None:
-        _cache.clear()
-        _access_count.clear()
+        for item in _cache.values():
+            item.clear()
+        for item in _access_count.values():
+            item.clear()
     else:
         function_id = id(_retrieve_undecorated_function(func))
         if function_id not in _cache.keys():  # panic

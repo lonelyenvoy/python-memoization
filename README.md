@@ -1,5 +1,4 @@
 # python-memoization
-A minimalist functional caching lib for Python, with TTL and auto memory management support.
 
 [![auc][aucsvg]][auc] [![License][licensesvg]][license]
 
@@ -8,6 +7,8 @@ A minimalist functional caching lib for Python, with TTL and auto memory managem
 
 [licensesvg]: https://img.shields.io/badge/License-MIT-blue.svg
 [license]: https://github.com/lonelyenvoy/python-memoization/blob/master/LICENSE
+
+A minimalist functional caching lib for Python, with TTL and auto memory management support.
 
 
 ## Installation

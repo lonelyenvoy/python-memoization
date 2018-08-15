@@ -1,18 +1,23 @@
 import collections
 import inspect
 import warnings
+import json
+import time
 from functools import wraps
 
-__version__ = 'v0.0.2'
+__version__ = 'v0.0.3'
 _cache = {}
 
 
-def cached(max_items=None):
+def cached(max_items=None, ttl=None):
     """
     @cached decorator wrapper.
     :param max_items: The max items can be held in memoization cache
                       * NOT RECOMMENDED *
                       This argument, if given, can dramatically slow down the performance.
+    :param ttl: Time-To-Live
+                Defining how long the cached data is valid (in seconds)
+                If not given, the data in cache is valid forever.
     :return: decorator
     """
     def decorator(func):
@@ -26,6 +31,8 @@ def cached(max_items=None):
             raise TypeError('Unable to do memoization on non-function object ' + str(func))
         if max_items is not None and (not isinstance(max_items, int) or max_items <= 0):
             raise ValueError('Illegal max_items <' + str(max_items) + '>: must be a positive integer')
+        if ttl is not None and ((not isinstance(ttl, int) and not isinstance(ttl, float)) or ttl <= 0):
+            raise ValueError('Illegal ttl <' + str(ttl) + '>: must be a positive number')
         arg_spec = inspect.getargspec(func)
         if len(arg_spec.args) == 0 and arg_spec.varargs is None and arg_spec.keywords is None:
             warnings.warn('It\'s meaningless to do memoization on a function with no arguments', SyntaxWarning)
@@ -42,15 +49,22 @@ def cached(max_items=None):
             input_args = _hashable_args(args, kwargs)
             function_id = id(func)
             specified_cache = _cache[function_id]
-            if input_args in specified_cache.keys():  # already cached
+            if input_args in specified_cache.keys() \
+                    and (ttl is None or time.time() < specified_cache[input_args]['expires_at']):
+                # already validly cached
                 cache_unit = specified_cache[input_args]
                 cache_unit['access_count'] += 1
                 return cache_unit['result']
-            else:  # not yet cached
+            else:
+                # not yet cached
                 output = func(*args, **kwargs)  # execute func
-                if max_items is not None and _size_explicit(function_id) >= max_items:
+                if max_items is not None and _size_explicit(function_id) >= max_items:  # pop item when fully occupied
                     specified_cache.popitem(last=False)
-                specified_cache[input_args] = {'result': output, 'access_count': 0}  # make cache
+                # make cache
+                if ttl is not None:
+                    specified_cache[input_args] = {'result': output, 'access_count': 0, 'expires_at': time.time() + ttl}
+                else:
+                    specified_cache[input_args] = {'result': output, 'access_count': 0}
                 return output
         return wrapper
     return decorator
@@ -118,10 +132,10 @@ def _hashable_args(args, kwargs):
     :param kwargs: kwargs
     :return: a hashable string
     """
-    kwargs_str = ''
-    for key, value in kwargs:
-        kwargs_str += key + '=' + value + ';'
-    return str(args) + kwargs_str
+    if kwargs == {}:
+        return str(args)
+    else:
+        return str(args) + json.dumps(kwargs)
 
 
 def _is_function(obj):
@@ -171,5 +185,5 @@ def _retrieve_safe_function_id(func):
 
 if __name__ == '__main__':
     import sys
-    sys.stderr.write('python-memoization ' + __version__ + ': A minimalist functional memoization lib for Python\n')
+    sys.stderr.write('python-memoization ' + __version__ + ': A minimalist functional caching lib for Python\n')
     sys.stderr.write('Go to https://github.com/lonelyenvoy/python-memoization for usage and more details.\n')

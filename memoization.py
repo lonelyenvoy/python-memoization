@@ -1,3 +1,4 @@
+import collections
 import inspect
 import warnings
 from functools import wraps
@@ -10,13 +11,15 @@ def cached(max_items=None):
         # type checks
         if not _is_function(func):
             raise TypeError('Unable to do memoization on non-function object ' + str(func))
+        if max_items is not None and (not isinstance(max_items, int) or max_items <= 0):
+            raise ValueError('Illegal max_items <' + str(max_items) + '>: must be a positive integer')
         arg_spec = inspect.getargspec(func)
         if len(arg_spec.args) == 0 and arg_spec.varargs is None and arg_spec.keywords is None:
             warnings.warn('It\'s meaningless to do memoization on a function with no arguments', SyntaxWarning)
 
         # init cache for func
         initial_function_id = id(func)
-        _cache[initial_function_id] = {}
+        _cache[initial_function_id] = {} if max_items is None else collections.OrderedDict()
 
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -29,6 +32,8 @@ def cached(max_items=None):
                 return cache_unit['result']
             else:  # not yet cached
                 output = func(*args, **kwargs)  # execute func
+                if max_items is not None and _size_explicit(function_id) >= max_items:
+                    specified_cache.popitem(last=False)
                 specified_cache[input_args] = {'result': output, 'access_count': 0}  # make cache
                 return output
         return wrapper
@@ -63,6 +68,10 @@ def size(func=None):
                       _cache.values())
     else:
         return len(_cache[_retrieve_safe_function_id(func)])
+
+
+def _size_explicit(func_id):
+    return len(_cache[func_id])
 
 
 def _hashable_args(args, kwargs):

@@ -1,6 +1,7 @@
 import memoization
 from memoization import cached
 import unittest
+import time
 
 
 class TestedFunctions:
@@ -17,6 +18,10 @@ class TestedFunctions:
     @cached()
     def subtract(self, a, b):
         return a - b
+
+    @cached(ttl=0.01)
+    def multiply(self, a, b):
+        return a * b
 
     @cached()
     def function_with_side_effects(self, a):
@@ -210,6 +215,20 @@ class TestMemoization(unittest.TestCase):
         self.assertEqual(memoization.size(), 6)
         memoization.clear()
         self.assertEqual(memoization.size(), 0)
+
+    def test_ttl(self):
+        """
+        Test memoization.cached with ttl
+        """
+        for _ in range(3):
+            self.f.multiply(2, 3)
+        cache_unit = memoization._cache.get(self._wrapped_func_id(self.f.multiply))[self._make_cache_key(2, 3)]
+        self.assertEqual(cache_unit['result'], 6)
+        self.assertEqual(cache_unit['access_count'], 2)
+        time.sleep(0.02)
+        self.f.multiply(2, 3)
+        cache_unit = memoization._cache.get(self._wrapped_func_id(self.f.multiply))[self._make_cache_key(2, 3)]
+        self.assertEqual(cache_unit['access_count'], 0)
 
 
 if __name__ == '__main__':

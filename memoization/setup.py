@@ -11,4 +11,4 @@ setup(name='memoization',
       author_email='petrinchor@gmail.com',
       license='MIT',
       packages=find_packages(),
-      include_package_data=True)
+      exclude_package_data=True)

@@ -1,9 +1,11 @@
 from setuptools import setup, find_packages
 
 setup(name='memoization',
-      version='0.0.6',
-      description='A minimalist functional caching lib for Python, with TTL and auto memory management support',
-      keywords='memoization memorization decorator cache functional ttl capacity',
+      version='0.0.7',
+      description='A minimalist functional caching lib for Python, with TTL and auto memory management support. '
+                  '(https://github.com/lonelyenvoy/python-memoization)',
+      keywords='memoization memorization remember decorator cache caching function callable'
+               'functional ttl limited capacity fast high-performance optimization',
       url='https://github.com/lonelyenvoy/python-memoization',
       author='lonelyenvoy',
       author_email='petrinchor@gmail.com',

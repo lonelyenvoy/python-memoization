@@ -1,9 +1,12 @@
 # python-memoization
 
-[![auc][aucsvg]][auc] [![repository][repositorysvg]][repository] [![License][licensesvg]][license]
+[![auc][aucsvg]][auc] [![Build Status][travismaster]][travis] [![repository][repositorysvg]][repository] [![License][licensesvg]][license]
 
-[aucsvg]: https://img.shields.io/badge/memoization-v0.0.6-brightgreen.svg
+[aucsvg]: https://img.shields.io/badge/memoization-v0.0.7-brightgreen.svg
 [auc]: https://github.com/lonelyenvoy/python-memoization
+
+[travismaster]: https://travis-ci.org/lonelyenvoy/python-memoization.svg?branch=master
+[travis]: https://travis-ci.org/lonelyenvoy/python-memoization
 
 [repositorysvg]: https://img.shields.io/badge/PyPI-latest-blue.svg
 [repository]: https://pypi.org/project/memoization

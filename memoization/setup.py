@@ -11,4 +11,4 @@ setup(name='memoization',
       author_email='petrinchor@gmail.com',
       license='MIT',
       packages=find_packages(),
-      exclude_package_data=True)
+      exclude_package_data={'': ['examples.py', 'test.py']})

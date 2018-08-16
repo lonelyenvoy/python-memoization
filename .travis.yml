@@ -7,6 +7,6 @@ python:
   - "3.4"
   - "3.5"
   - "3.6"
-  - "3.7"
+  - "3.7.0"
 script:
   - python memoization/test.py

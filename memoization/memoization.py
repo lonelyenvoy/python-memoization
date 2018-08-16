@@ -5,9 +5,8 @@ import json
 import time
 from functools import wraps
 from functools import reduce
-from _undecorated import include_undecorated_function
 
-__version__ = '0.0.9'
+__version__ = '0.0.10'
 _cache = {}
 
 
@@ -22,7 +21,7 @@ def cached(max_items=None, ttl=None):
                 If not given, the data in cache is valid forever.
     :return: decorator
     """
-    @include_undecorated_function()
+    @_include_undecorated_function()
     def decorator(func):
         """
         @cached decorator.
@@ -187,6 +186,38 @@ def _retrieve_safe_function_id(func):
     if function_id not in _cache.keys():  # panic
         _error_unrecognized_function(func)
     return function_id
+
+
+def _include_undecorated_function(key='original'):
+    """
+    Decorator to include original function in a decorated one
+
+    e.g.
+    @include_undecorated_function()
+    def shout(f):
+        def _():
+            string = f()
+            return string.upper()
+        return _
+
+
+    @shout
+    def hello():
+        return 'hello world'
+
+    print hello()               # HELLO WORLD
+    print hello.original()      # hello world
+
+    :param key: The key to access the original function
+    :return: decorator
+    """
+    def this_decorator(decorator):
+        def wrapper(func):
+            decorated = decorator(func)
+            setattr(decorated, key, func)
+            return decorated
+        return wrapper
+    return this_decorator
 
 
 if __name__ == '__main__':

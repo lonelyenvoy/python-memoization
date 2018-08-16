@@ -2,7 +2,7 @@
 
 [![Version][aucsvg]][auc] [![Supports Python][pythonsvg]][python] [![Build Status][travismaster]][travis] [![Repository][repositorysvg]][repository] [![License][licensesvg]][license]
 
-[aucsvg]: https://img.shields.io/badge/memoization-v0.0.9-brightgreen.svg
+[aucsvg]: https://img.shields.io/badge/memoization-v0.0.10-brightgreen.svg
 [auc]: https://github.com/lonelyenvoy/python-memoization
 
 [pythonsvg]: https://img.shields.io/badge/python-2.6,_2.7,_3.2,_3.3,_3.4,_3.5,_3.6,_3.7-brightgreen.svg

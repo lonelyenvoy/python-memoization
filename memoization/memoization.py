@@ -7,7 +7,7 @@ from functools import wraps
 from functools import reduce
 from _undecorated import include_undecorated_function
 
-__version__ = '0.0.8'
+__version__ = '0.0.9'
 _cache = {}
 
 

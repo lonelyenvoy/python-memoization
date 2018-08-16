@@ -8,7 +8,7 @@ setup(name='memoization',
                'functional ttl limited capacity fast high-performance optimization',
       url='https://github.com/lonelyenvoy/python-memoization',
       author='lonelyenvoy',
-      author_email='petrinchor /|at|/ gmail.com',
+      author_email='petrinchor@gmail.com',
       license='MIT',
       packages=find_packages(),
       include_package_data=True)

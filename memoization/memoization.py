@@ -4,8 +4,10 @@ import warnings
 import json
 import time
 from functools import wraps
+from functools import reduce
+from _undecorated import include_undecorated_function
 
-__version__ = '0.0.6'
+__version__ = '0.0.7'
 _cache = {}
 
 
@@ -20,6 +22,7 @@ def cached(max_items=None, ttl=None):
                 If not given, the data in cache is valid forever.
     :return: decorator
     """
+    @include_undecorated_function()
     def decorator(func):
         """
         @cached decorator.
@@ -78,7 +81,7 @@ def clean(safe_access_count=1, func=None):
                  for all functions
     """
     def del_unit(func_id, cache_value_items):
-        for input_args, cache_unit in cache_value_items:
+        for input_args, cache_unit in list(cache_value_items):
             if cache_unit['access_count'] < safe_access_count:
                 del _cache[func_id][input_args]
 
@@ -86,6 +89,7 @@ def clean(safe_access_count=1, func=None):
         for function_id, specified_cache in _cache.items():
             del_unit(function_id, specified_cache.items())
     else:
+        assert _is_function(func)
         del_unit(_retrieve_safe_function_id(func), _cache[_retrieve_safe_function_id(func)].items())
 
 
@@ -99,6 +103,7 @@ def clear(func=None):
         for item in _cache.values():
             item.clear()
     else:
+        assert _is_function(func)
         _cache[_retrieve_safe_function_id(func)].clear()
 
 
@@ -113,6 +118,7 @@ def size(func=None):
                       if isinstance(accumulation, dict) else accumulation + len(cache_value),
                       _cache.values())
     else:
+        assert _is_function(func)
         return len(_cache[_retrieve_safe_function_id(func)])
 
 
@@ -153,10 +159,10 @@ def _retrieve_undecorated_function(func):
     :param func: The decorated function
     :return: The original function
     """
-    if func.func_closure is None:
+    if not hasattr(func, 'original'):
         raise TypeError('Unable to retrieve the undecorated function: The function '
-                        + func.__name__ + ' is not decorated')
-    return func.func_closure[0].cell_contents
+                        + func.__name__ + ' is not decorated with @cached')
+    return func.original
 
 
 def _error_unrecognized_function(func):

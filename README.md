@@ -80,7 +80,7 @@ memoization.clean(safe_access_count=1, func=None)
 ```
 
 Do a manual garbage collection in the cache.
-This will remove any cached items which are accessed fewer times than ```safe_access_count``` (by default 1, which means only items not accessed will be removed), of all functions or a certain function ```func``` (by default None, which means all function decorated with ```@cached()``` are inclusive).
+This will remove any cached item which is accessed fewer times than ```safe_access_count``` (by default ```1```, which means only items not accessed will be removed), of all functions or a certain function ```func``` (by default ```None```, which means all function decorated with ```@cached()``` are inclusive).
 
 Returns ```None```.
 
@@ -91,7 +91,7 @@ Returns ```None```.
 memoization.clear(func=None)
 ```
 
-Remove all the cached items, of all functions or a certain function ```func``` (by default None, which means all function decorated with ```@cached()``` are inclusive).
+Remove all the cached items, of all functions or a certain function ```func``` (by default ```None```, which means all function decorated with ```@cached()``` are inclusive).
 
 Returns ```None```.
 
@@ -102,9 +102,9 @@ Returns ```None```.
 momoization.size(func=None)
 ```
 
-Get the size of the entire cache, or that of items cached of a certain function ```func``` (by default None, which means all function decorated with ```@cached()``` are inclusive).
+Get the size of the entire cache, or that of items cached of a certain function ```func``` (by default ```None```, which means all function decorated with ```@cached()``` are inclusive).
 
-Returns the size, i.e. the number of items cached.
+Returns ```<type 'int'>``` the size, i.e. the number of items cached.
 
 
 ## Contributing

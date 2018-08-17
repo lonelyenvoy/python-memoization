@@ -43,10 +43,10 @@ def fun(arg):
     return do_something_slow(arg)
 ```
 
-Repetitive calls to ```fun()``` with the same arguments then run ```fun()``` only once.
+The results of ```fun()``` are now magically cached! Repetitive calls to ```fun()``` with the same arguments run ```fun()``` only once, enhancing performance.
 
 
-## Advanced topics
+## Advanced features
 
 ### TTL (Time-To-Live)
 
@@ -67,6 +67,44 @@ def get_compiled_binary(filename):
 ```
 
 When the cache is fully occupied, the data first came will be overwritten.
+
+*PS: Although explicit use of ```max_items``` saves memory, it leads to **low performance**, as the data structure of the cache, ```dict```, is replaced by the slower ```collections.OrderedDict``` on this occasion.*
+
+## Manipulating the cache
+(Not recommended unless you know what you are doing)
+
+### Clean the cache
+
+```python
+memoization.clean(safe_access_count=1, func=None)
+```
+
+Do a manual garbage collection in the cache.
+This will remove any cached items which are accessed fewer times than ```safe_access_count``` (by default 1, which means only items not accessed will be removed), of all functions or a certain function ```func``` (by default None, which means all function decorated with ```@cached()``` are inclusive).
+
+Returns ```None```.
+
+
+### Clear the cache
+
+```python
+memoization.clear(func=None)
+```
+
+Remove all the cached items, of all functions or a certain function ```func``` (by default None, which means all function decorated with ```@cached()``` are inclusive).
+
+Returns ```None```.
+
+
+### Get the size of the cache
+
+```python
+momoization.size(func=None)
+```
+
+Get the size of the entire cache, or that of items cached of a certain function ```func``` (by default None, which means all function decorated with ```@cached()``` are inclusive).
+
+Returns the size, i.e. the number of items cached.
 
 
 ## Contributing

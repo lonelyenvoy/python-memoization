@@ -109,7 +109,7 @@ Returns ```<type 'int'>``` the size, i.e. the number of items cached.
 
 ## Contributing
 
-Any improvement or bug-fixing is welcome. Create a [pull request](https://github.com/lonelyenvoy/python-memoization/pulls) when you are done.
+Any improvement or bug-fixing is welcome. Create a [pull request](https://github.com/lonelyenvoy/python-memoization/pulls) when you are done. (Please make sure that your PR passes the tests in ```memoization/test.py```)
 
 ## License
 

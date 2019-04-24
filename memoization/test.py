@@ -279,6 +279,7 @@ TODO
 7.  Add documentation (including "PR welcome" in README)
 8.  Ensure compatability with Python 2.6-2.7 and 3.2-3.7
 9.  Write __init__.py
-10. Performance optimization in the future
+10. Write examples.py
+11. Performance optimization in the future
 
 """

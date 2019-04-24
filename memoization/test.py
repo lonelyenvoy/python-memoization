@@ -266,6 +266,10 @@ class TestMemoization(unittest.TestCase):
         self.assertEqual(exec_times[tested_function.__name__], 23)
 
 
+if __name__ == '__main__':
+    unittest.main()
+
+
 """
 TODO
 

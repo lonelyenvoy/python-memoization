@@ -1,223 +1,738 @@
-import collections
+from functools import partial, update_wrapper
+from collections import namedtuple
+import enum
+import time
+from threading import RLock
 import inspect
 import warnings
-import json
-import time
-from functools import wraps
-from functools import reduce
 
-__version__ = '0.0.10'
-_cache = {}
+# Public symbols
+__all__ = ['cached', 'CachingAlgorithmFlag', 'FIFO', 'LRU', 'LFU']
+__version__ = '0.1.0-alpha'
 
 
-def cached(max_items=None, ttl=None):
+class CachingAlgorithmFlag(enum.IntFlag):
+    FIFO = 1    # First In First Out
+    LRU = 2     # Least Recently Used
+    LFU = 4     # Least Frequently Used
+
+
+# Insert the algorithm flags to the global namespace
+globals().update(CachingAlgorithmFlag.__members__)
+
+
+def cached(user_function=None, max_size=None, ttl=None, algorithm=CachingAlgorithmFlag.LRU, thread_safe=True):
     """
-    @cached decorator wrapper.
-    :param max_items: The max items can be held in memoization cache
-                      * NOT RECOMMENDED *
-                      This argument, if given, can dramatically slow down the performance.
+    @cached decorator wrapper
+    :param user_function: The decorated function, to be cached
+    :param max_size: The max number of items can be held in the cache
     :param ttl: Time-To-Live
                 Defining how long the cached data is valid (in seconds)
                 If not given, the data in cache is valid forever.
-    :return: decorator
+                Valid only when max_size > 0
+    :param algorithm: The algorithm used when caching
+                      Default: LRU (Least Recently Used)
+                      Valid only when max_size > 0
+                      Refer to CachingAlgorithmFlag for possible choices.
+    :param thread_safe: Whether thw cache is thread safe
+                        Setting it to False enhances performance.
+    :return: decorator function
     """
-    @_include_undecorated_function()
-    def decorator(func):
-        """
-        @cached decorator.
-        :param func: The decorated function
-        :return: wrapper
-        """
-        # type checks
-        if not _is_function(func):
-            raise TypeError('Unable to do memoization on non-function object ' + str(func))
-        if max_items is not None and (not isinstance(max_items, int) or max_items <= 0):
-            raise ValueError('Illegal max_items <' + str(max_items) + '>: must be a positive integer')
-        if ttl is not None and ((not isinstance(ttl, int) and not isinstance(ttl, float)) or ttl <= 0):
-            raise ValueError('Illegal ttl <' + str(ttl) + '>: must be a positive number')
-        arg_spec = inspect.getargspec(func)
-        if len(arg_spec.args) == 0 and arg_spec.varargs is None and arg_spec.keywords is None:
-            warnings.warn('It\'s meaningless to do memoization on a function with no arguments', SyntaxWarning)
 
-        # init cache for func
-        initial_function_id = id(func)
-        _cache[initial_function_id] = {} if max_items is None else collections.OrderedDict()
+    # Adapt to the usage of calling the decorator and that of not calling it
+    if user_function is None:
+        return partial(cached, max_size=max_size, ttl=ttl, algorithm=algorithm, thread_safe=thread_safe)
 
-        @wraps(func)
+    # Perform type checking
+    if not hasattr(user_function, '__call__'):
+        raise TypeError('Unable to do memoization on non-callable object ' + str(user_function))
+    if max_size is not None:
+        if not isinstance(max_size, int):
+            raise TypeError('Expected max_size to be an integer or None')
+        elif max_size < 0:
+            raise ValueError('Expected max_size to be a nonnegative integer or None')
+    if ttl is not None:
+        if not isinstance(ttl, int) and not isinstance(ttl, float):
+            raise TypeError('Expected ttl to be a number or None')
+        elif ttl <= 0:
+            raise ValueError('Expected ttl to be a positive number or None')
+    if not isinstance(algorithm, CachingAlgorithmFlag):
+        raise TypeError('Expected algorithm to be one of CachingAlgorithmFlag')
+    if not isinstance(thread_safe, bool):
+        raise TypeError('Expected thread_safe to be a boolean value')
+
+    # Warn on zero-argument functions
+    user_function_info = inspect.getfullargspec(user_function)
+    if len(user_function_info.args) == 0 and user_function_info.varargs is None and user_function_info.varkw is None:
+        warnings.warn('It makes no sense to do memoization on a function without arguments', SyntaxWarning)
+
+    # Create wrapper
+    wrapper = _create_cached_wrapper(user_function, max_size, ttl, algorithm, thread_safe)
+    return update_wrapper(wrapper, user_function)  # update wrapper to make it look like the original function
+
+
+def _create_cached_wrapper(user_function, max_size, ttl, algorithm, thread_safe):
+    """
+    Factory that creates an actual executed function when a function is decorated with @cached
+    """
+
+    cache = {}                                           # the cache to store function results
+    sentinel = object()                                  # sentinel object for the default value of map.get
+    hits = misses = 0                                    # hits and misses of the cache
+    make_key = _make_key
+    lock = RLock() if thread_safe else _DummyWithable()  # ensure thread-safe
+
+    if max_size == 0:
+
+        def cache_clear():
+            nonlocal misses
+            with lock:
+                misses = 0
+
+        # No caching, only statistics
         def wrapper(*args, **kwargs):
-            """
-            The actual executed function when a function is decorated with @cached.
-            """
-            input_args = _hashable_args(args, kwargs)
-            function_id = id(func)
-            specified_cache = _cache[function_id]
-            if input_args in specified_cache.keys() \
-                    and (ttl is None or time.time() < specified_cache[input_args]['expires_at']):
-                # already validly cached
-                cache_unit = specified_cache[input_args]
-                cache_unit['access_count'] += 1
-                return cache_unit['result']
-            else:
-                # not yet cached
-                output = func(*args, **kwargs)  # execute func
-                if max_items is not None and _size_explicit(function_id) >= max_items:  # pop item when fully occupied
-                    specified_cache.popitem(last=False)
-                # make cache
-                if ttl is not None:
-                    specified_cache[input_args] = {'result': output, 'access_count': 0, 'expires_at': time.time() + ttl}
+            nonlocal misses
+            with lock:
+                misses += 1
+            return user_function(*args, **kwargs)
+
+    elif max_size is None:
+
+        def cache_clear():
+            nonlocal hits, misses
+            with lock:
+                cache.clear()
+                hits = misses = 0
+
+        if ttl is None:
+
+            # Unlimited cache, no ttl
+            def wrapper(*args, **kwargs):
+                nonlocal hits, misses
+                key = make_key(args, kwargs)
+                result = cache.get(key, sentinel)
+                if result is not sentinel:
+                    with lock:
+                        hits += 1
+                    return result
                 else:
-                    specified_cache[input_args] = {'result': output, 'access_count': 0}
-                return output
-        return wrapper
-    return decorator
+                    with lock:
+                        misses += 1
+                    result = user_function(*args, **kwargs)
+                    cache[key] = result
+                    return result
 
+        else:
 
-def clean(safe_access_count=1, func=None):
-    """
-    Remove the cached items, which are accessed fewer than a given value, of a certain function.
-    :param safe_access_count: The access times that are safe from cleaning process
-    :param func: The certain function that needs cleaning, if not given, cleaning process will be executed
-                 for all functions
-    """
-    def del_unit(func_id, cache_value_items):
-        for input_args, cache_unit in list(cache_value_items):
-            if cache_unit['access_count'] < safe_access_count:
-                del _cache[func_id][input_args]
+            # Indexes of cache value
+            _DATA = 0
+            _EXPIRES_AT = 1
 
-    if func is None:
-        for function_id, specified_cache in _cache.items():
-            del_unit(function_id, specified_cache.items())
+            # Unlimited cache, with ttl
+            def wrapper(*args, **kwargs):
+                nonlocal hits, misses
+                key = make_key(args, kwargs)
+                value = cache.get(key, sentinel)
+                if value is not sentinel and time.time() < value[_EXPIRES_AT]:
+                    with lock:
+                        hits += 1
+                    return value[_DATA]
+                else:
+                    with lock:
+                        misses += 1
+                    result = user_function(*args, **kwargs)
+                    cache[key] = (result, time.time() + ttl)
+                    return result
+
     else:
-        assert _is_function(func)
-        del_unit(_retrieve_safe_function_id(func), _cache[_retrieve_safe_function_id(func)].items())
+        if algorithm == CachingAlgorithmFlag.FIFO or algorithm == CachingAlgorithmFlag.LRU:
+
+            full = False                        # whether the cache is full or not
+            root = []                           # linked list
+            root[:] = [root, root, None, None]  # initialize by pointing to self
+            _PREV = 0                           # index for the previous node
+            _NEXT = 1                           # index for the next node
+            _KEY = 2                            # index for the key
+            _VALUE = 3                          # index for the value
+
+            def cache_clear():
+                nonlocal hits, misses, full
+                with lock:
+                    cache.clear()
+                    hits = misses = 0
+                    full = False
+                    root[:] = [root, root, None, None]
+
+            if algorithm == CachingAlgorithmFlag.FIFO:
+
+                if ttl is None:
+
+                    # Limited cache, FIFO, no ttl
+                    def wrapper(*args, **kwargs):
+                        nonlocal hits, misses, root, full
+                        key = make_key(args, kwargs)
+                        with lock:
+                            node = cache.get(key, sentinel)
+                            if node is not sentinel:
+                                hits += 1
+                                return node[_VALUE]
+                            misses += 1
+                        result = user_function(*args, **kwargs)
+                        with lock:
+                            if key in cache:
+                                # result added to the cache while the lock was released
+                                # no need to add again
+                                pass
+                            elif full:
+                                # switch root to the oldest element in the cache
+                                old_root = root
+                                root = root[_NEXT]
+                                # keep references of root[_KEY] and root[_VALUE] to prevent arbitrary GC
+                                old_key = root[_KEY]
+                                old_value = root[_VALUE]
+                                # overwrite the content of the old root
+                                old_root[_KEY] = key
+                                old_root[_VALUE] = result
+                                # clear the content of the new root
+                                root[_KEY] = root[_VALUE] = None
+                                # delete from cache
+                                del cache[old_key]
+                                # save the result to the cache
+                                cache[key] = old_root
+                            else:
+                                # add a node to the linked list
+                                last = root[_PREV]
+                                node = [last, root, key, result]  # new node
+                                cache[key] = root[_PREV] = last[_NEXT] = node  # save result to the cache
+                                # check whether the cache is full
+                                full = (cache.__len__() >= max_size)
+                        return result
+
+                else:
+
+                    # Indexes of values in node[_VALUE]
+                    _DATA = 0
+                    _EXPIRES_AT = 1
+
+                    # Limited cache, FIFO, with ttl
+                    def wrapper(*args, **kwargs):
+                        nonlocal hits, misses, root, full
+                        key = make_key(args, kwargs)
+                        with lock:
+                            node = cache.get(key, sentinel)
+                            if node is not sentinel and time.time() < node[_VALUE][_EXPIRES_AT]:
+                                hits += 1
+                                return node[_VALUE][_DATA]
+                            misses += 1
+                        result = user_function(*args, **kwargs)
+                        expires_at = time.time() + ttl
+                        with lock:
+                            if key in cache:
+                                # result added to the cache while the lock was released
+                                # no need to add again
+                                pass
+                            elif full:
+                                # switch root to the oldest element in the cache
+                                old_root = root
+                                root = root[_NEXT]
+                                # keep references of root[_KEY] and root[_VALUE] to prevent arbitrary GC
+                                old_key = root[_KEY]
+                                old_value = root[_VALUE]
+                                # overwrite the content of the old root
+                                old_root[_KEY] = key
+                                old_root[_VALUE] = (result, expires_at)
+                                # clear the content of the new root
+                                root[_KEY] = root[_VALUE] = None
+                                # delete from cache
+                                del cache[old_key]
+                                # save the result to the cache
+                                cache[key] = old_root
+                            else:
+                                # add a node to the linked list
+                                last = root[_PREV]
+                                node = [last, root, key, (result, expires_at)]  # new node
+                                cache[key] = root[_PREV] = last[_NEXT] = node  # save result to the cache
+                                # check whether the cache is full
+                                full = (cache.__len__() >= max_size)
+                        return result
+
+                wrapper._fifo_root = root
+                wrapper._root_name = '_fifo_root'
+
+            else:  # algorithm == CachingAlgorithmFlag.LRU
+
+                if ttl is None:
+
+                    # Limited cache, LRU, no ttl
+                    def wrapper(*args, **kwargs):
+                        nonlocal hits, misses, root, full
+                        key = make_key(args, kwargs)
+                        with lock:
+                            node = cache.get(key, sentinel)
+                            if node is not sentinel:
+                                # move the node to the front of the list
+                                node_prev, node_next, _, result = node
+                                node_prev[_NEXT] = node_next
+                                node_next[_PREV] = node_prev
+                                node[_PREV] = root[_PREV]
+                                node[_NEXT] = root
+                                root[_PREV][_NEXT] = node
+                                root[_PREV] = node
+                                # update statistics
+                                hits += 1
+                                return result
+                            misses += 1
+                        result = user_function(*args, **kwargs)
+                        with lock:
+                            if key in cache:
+                                # result added to the cache while the lock was released
+                                # no need to add again
+                                pass
+                            elif full:
+                                # switch root to the oldest element in the cache
+                                old_root = root
+                                root = root[_NEXT]
+                                # keep references of root[_KEY] and root[_VALUE] to prevent arbitrary GC
+                                old_key = root[_KEY]
+                                old_value = root[_VALUE]
+                                # overwrite the content of the old root
+                                old_root[_KEY] = key
+                                old_root[_VALUE] = result
+                                # clear the content of the new root
+                                root[_KEY] = root[_VALUE] = None
+                                # delete from cache
+                                del cache[old_key]
+                                # save the result to the cache
+                                cache[key] = old_root
+                            else:
+                                # add a node to the linked list
+                                last = root[_PREV]
+                                node = [last, root, key, result]  # new node
+                                cache[key] = root[_PREV] = last[_NEXT] = node  # save result to the cache
+                                # check whether the cache is full
+                                full = (cache.__len__() >= max_size)
+                        return result
+
+                else:
+
+                    # Indexes of values in node[_VALUE]
+                    _DATA = 0
+                    _EXPIRES_AT = 1
+
+                    # Limited cache, LRU, with ttl
+                    def wrapper(*args, **kwargs):
+                        nonlocal hits, misses, root, full
+                        key = make_key(args, kwargs)
+                        with lock:
+                            node = cache.get(key, sentinel)
+                            if node is not sentinel and time.time() < node[_VALUE][_EXPIRES_AT]:
+                                # move the node to the front of the list
+                                node_prev, node_next, _, result = node
+                                node_prev[_NEXT] = node_next
+                                node_next[_PREV] = node_prev
+                                node[_PREV] = root[_PREV]
+                                node[_NEXT] = root
+                                root[_PREV][_NEXT] = node
+                                root[_PREV] = node
+                                # update statistics
+                                hits += 1
+                                return result[_DATA]
+                            misses += 1
+                        result = user_function(*args, **kwargs)
+                        expires_at = time.time() + ttl
+                        with lock:
+                            if key in cache:
+                                # result added to the cache while the lock was released
+                                # no need to add again
+                                pass
+                            elif full:
+                                # switch root to the oldest element in the cache
+                                old_root = root
+                                root = root[_NEXT]
+                                # keep references of root[_KEY] and root[_VALUE] to prevent arbitrary GC
+                                old_key = root[_KEY]
+                                old_value = root[_VALUE]
+                                # overwrite the content of the old root
+                                old_root[_KEY] = key
+                                old_root[_VALUE] = (result, expires_at)
+                                # clear the content of the new root
+                                root[_KEY] = root[_VALUE] = None
+                                # delete from cache
+                                del cache[old_key]
+                                # save the result to the cache
+                                cache[key] = old_root
+                            else:
+                                # add a node to the linked list
+                                last = root[_PREV]
+                                node = [last, root, key, (result, expires_at)]  # new node
+                                cache[key] = root[_PREV] = last[_NEXT] = node  # save result to the cache
+                                # check whether the cache is full
+                                full = (cache.__len__() >= max_size)
+                        return result
+
+                wrapper._lru_root = root
+                wrapper._root_name = '_lru_root'
+
+        elif algorithm == CachingAlgorithmFlag.LFU:
+
+            lfu_freq_list_root = _FreqNode.root()  # LFU frequency list root
+
+            def cache_clear():
+                nonlocal hits, misses, lfu_freq_list_root
+                with lock:
+                    cache.clear()
+                    hits = misses = 0
+                    lfu_freq_list_root = _FreqNode.root()
+
+            if ttl is None:
+
+                # Limited cache, LFU, no ttl
+                def wrapper(*args, **kwargs):
+                    nonlocal hits, misses, root, full
+                    key = make_key(args, kwargs)
+                    with lock:
+                        result = _access_lfu_cache(cache, key, sentinel)
+                        if result is not sentinel:
+                            hits += 1
+                            return result
+                        misses += 1
+                    result = user_function(*args, **kwargs)
+                    with lock:
+                        if key in cache:
+                            # result added to the cache while the lock was released
+                            # no need to add again
+                            pass
+                        else:
+                            _insert_into_lfu_cache(cache, key, result, lfu_freq_list_root, max_size)
+                    return result
+
+            else:
+
+                # Indexes of values in node.value
+                _DATA = 0
+                _EXPIRES_AT = 1
+
+                # Limited cache, LFU, with ttl
+                def wrapper(*args, **kwargs):
+                    nonlocal hits, misses, root, full
+                    key = make_key(args, kwargs)
+                    with lock:
+                        result = _access_lfu_cache(cache, key, sentinel)
+                        if result is not sentinel and time.time() < result[_EXPIRES_AT]:
+                            hits += 1
+                            return result[_DATA]
+                        misses += 1
+                    result = user_function(*args, **kwargs)
+                    expires_at = time.time() + ttl
+                    with lock:
+                        if key in cache:
+                            # result added to the cache while the lock was released
+                            # no need to add again
+                            pass
+                        else:
+                            _insert_into_lfu_cache(cache, key, (result, expires_at), lfu_freq_list_root, max_size)
+                    return result
+
+            wrapper._lfu_root = lfu_freq_list_root
+            wrapper._root_name = '_lfu_root'
+
+        else:
+            raise RuntimeError('Unrecognized caching algorithm flag')
+
+    def cache_info():
+        with lock:
+            return _CacheInfo(hits, misses, cache.__len__(), max_size, algorithm, ttl, thread_safe)
+
+    wrapper.cache_info = cache_info
+    wrapper.cache_clear = cache_clear
+    wrapper._cache = cache
+    return wrapper
 
 
-def clear(func=None):
+class _HashedList(list):
     """
-    Remove all cached items of a certain function or all functions.
-    :param func: The certain function that will be cleared, if not given, clearing process will be executed
-                 for all functions
+    This class guarantees that hash() will be called no more than once per element.
     """
-    if func is None:
-        for item in _cache.values():
-            item.clear()
+
+    __slots__ = 'hash_value'
+
+    def __init__(self, tup, hash_value):
+        super().__init__(tup)
+        self.hash_value = hash_value
+
+    def __hash__(self):
+        return self.hash_value
+
+
+def _make_key(args, kwargs, kwargs_mark=(object(),)):
+    """
+    Make a cache key
+    """
+    key = args
+    if kwargs:
+        key += kwargs_mark
+        for item in kwargs.items():
+            key += item
+    try:
+        hash_value = hash(key)
+    except TypeError:  # process unhashable types
+        return str(key)
     else:
-        assert _is_function(func)
-        _cache[_retrieve_safe_function_id(func)].clear()
+        return _HashedList(key, hash_value)
 
 
-def size(func=None):
+####################################################################################################
+# LFU Cache
+# Least Frequently Used Cache
+#
+# O(1) implementation - please refer to the following documents for more details:
+# http://dhruvbird.com/lfu.pdf
+# https://medium.com/@epicshane/a-python-implementation-of-lfu-least-frequently-used-cache-with-o-1-time-complexity-e16b34a3c49b
+####################################################################################################
+
+
+class _CacheNode(object):
     """
-    Get the cache size of a certain function or all functions.
-    :param func: The certain function that needs size calculation
-    :return: The cache size
+    Cache Node for LFU Cache
     """
-    if func is None:
-        return reduce(lambda accumulation, cache_value: len(accumulation) + len(cache_value)
-                      if isinstance(accumulation, dict) else accumulation + len(cache_value),
-                      _cache.values())
+
+    __slots__ = 'prev', 'next', 'parent', 'key', 'value'
+
+    def __init__(self, prev=None, next=None, parent=None, key=None, value=None):
+        self.prev = prev
+        self.next = next
+        self.parent = parent
+        self.key = key
+        self.value = value
+
+    @classmethod
+    def root(cls, parent=None, key=None, value=None):
+        """
+        Generate an empty root node
+        """
+        node = cls(None, None, parent, key, value)
+        node.prev = node.next = node
+        return node
+
+    def destroy(self):
+        """
+        Destroy the current cache node
+        """
+        self.prev.next = self.next
+        self.next.prev = self.prev
+        if self.parent.cache_head == self:
+            self.parent.cache_head = None
+        self.prev = self.next = self.parent = self.key = self.value = None
+
+
+class _FreqNode(object):
+    """
+    Frequency Node for LFU Cache
+    """
+
+    __slots__ = 'prev', 'next', 'frequency', 'cache_head'
+
+    def __init__(self, prev=None, next=None, frequency=None, cache_head=None):
+        self.prev = prev
+        self.next = next
+        self.frequency = frequency
+        self.cache_head = cache_head
+
+    @classmethod
+    def root(cls, frequency=None, cache_head=None):
+        """
+        Generate an empty root node
+        """
+        node = cls(None, None, frequency, cache_head)
+        node.prev = node.next = node
+        return node
+
+    def destroy(self):
+        """
+        Destroy the current frequency node
+        """
+        self.prev.next = self.next
+        self.next.prev = self.prev
+        self.prev = self.next = self.cache_head = None
+
+
+def _insert_into_lfu_cache(cache, key, value, root, max_size):
+    first_freq_node = root.next
+    if cache.__len__() >= max_size:
+        # The cache is full
+
+        if first_freq_node.frequency != 1:
+            # The first element in frequency list has its frequency other than 1 (> 1)
+            # We need to drop the last element in the cache list of the first frequency node
+            # and then insert a new frequency node, attaching an empty cache node together with
+            # another cache node with data to the frequency node
+
+            # Find the target
+            cache_head = first_freq_node.cache_head
+            last_node = cache_head.prev
+
+            # Modify references
+            last_node.prev.next = cache_head
+            cache_head.prev = last_node.prev
+
+            # Drop the last node; hold the old data to prevent arbitrary GC
+            old_key = last_node.key
+            old_value = last_node.value
+            last_node.destroy()
+
+            if first_freq_node.cache_head.next == first_freq_node.cache_head:
+                # Getting here means that we just deleted the only data node in the cache list
+                # under the first frequency list
+                # Note: there is still an empty sentinel node
+                # We then need to destroy the sentinel node and its parent frequency node too
+                first_freq_node.cache_head.destroy()
+                first_freq_node.destroy()
+                first_freq_node = root.next  # update
+
+            # Delete from cache
+            del cache[old_key]
+
+            # Prepare a new frequency node, a cache root node and a cache data node
+            empty_cache_root = _CacheNode.root()
+            freq_node = _FreqNode(root, first_freq_node, 1, empty_cache_root)
+            cache_node = _CacheNode(empty_cache_root, empty_cache_root, freq_node, key, value)
+            empty_cache_root.parent = freq_node
+
+            # Modify references
+            root.next.prev = root.next = freq_node
+            empty_cache_root.prev = empty_cache_root.next = cache_node
+
+        else:
+            # We can find the last element in the cache list under the first frequency list
+            # Moving it to the head and replace the stored data with a new key and a new value
+            # This is more efficient
+
+            # Find the target
+            cache_head = first_freq_node.cache_head
+            manipulated_node = cache_head.prev
+
+            # Modify references
+            manipulated_node.prev.next = cache_head
+            cache_head.prev = manipulated_node.prev
+            manipulated_node.next = cache_head.next
+            manipulated_node.prev = cache_head
+            cache_head.next.prev = cache_head.next = manipulated_node
+
+            # Replace the data; hold the old data to prevent arbitrary GC
+            old_key = manipulated_node.key
+            old_value = manipulated_node.value
+            manipulated_node.key = key
+            manipulated_node.value = value
+
+            # use another name so it can be accessed later
+            cache_node = manipulated_node
+
+            # Delete from cache
+            del cache[old_key]
     else:
-        assert _is_function(func)
-        return len(_cache[_retrieve_safe_function_id(func)])
+        # The cache is not full
+
+        if first_freq_node.frequency != 1:
+            # The first element in frequency list has its frequency other than 1 (> 1)
+            # Creating a new node in frequency list with 1 as its frequency required
+            # We also need to create a new cache list and attach it to this new node
+
+            # Create a cache root and a frequency node
+            cache_root = _CacheNode.root()
+            freq_node = _FreqNode(root, first_freq_node, 1, cache_root)
+            cache_root.parent = freq_node
+
+            # Create another cache node to store data
+            cache_node = _CacheNode(cache_root, cache_root, freq_node, key, value)
+
+            # Modify references
+            cache_root.prev = cache_root.next = cache_node
+            first_freq_node.prev = root.next = freq_node  # note: DO NOT swap "=", because first_freq_node == root.next
+
+        else:
+            # We create a new cache node in the cache list
+            # under the frequency node with frequency 1
+
+            # Create a cache node and store data in it
+            cache_head = first_freq_node.cache_head
+            cache_node = _CacheNode(cache_head, cache_head.next, first_freq_node, key, value)
+
+            # Modify references
+            cache_node.prev.next = cache_node.next.prev = cache_node
+
+    # Finally, insert the data into the cache
+    cache[key] = cache_node
 
 
-def _size_explicit(func_id):
-    """
-    Get the cache size by function id.
-    :param func_id: The given function id
-    :return: The cache size
-    """
-    return len(_cache[func_id])
-
-
-def _hashable_args(args, kwargs):
-    """
-    Turn arguments in any shape into a hashable string.
-    :param args: args
-    :param kwargs: kwargs
-    :return: a hashable string
-    """
-    if kwargs == {}:
-        return str(args)
+def _access_lfu_cache(cache, key, sentinel):
+    if key in cache:
+        cache_node = cache[key]
     else:
-        return str(args) + json.dumps(kwargs)
+        # Key does not exist
+        # Access failed
+        return sentinel
+    freq_node = cache_node.parent
+    target_frequency = freq_node.frequency + 1
+    if freq_node.next.frequency != target_frequency:
+        # The next node on the frequency list has a frequency value different from
+        # (the frequency of the current node) + 1, which means we need to construct
+        # a new frequency node and an empty cache root node
+        # Then we move the current node to the newly created cache list
 
+        # Create a cache root and a frequency root
+        cache_root = _CacheNode.root()
+        new_freq_node = _FreqNode(freq_node, freq_node.next, target_frequency, cache_root)
+        cache_root.parent = new_freq_node
 
-def _is_function(obj):
-    """
-    Check if a object is function.
-    :param obj: The object to be checked
-    :return: True if it's a function, False otherwise
-    """
-    return hasattr(obj, '__call__')
+        # Modify references
+        cache_node.prev.next = cache_node.next
+        cache_node.next.prev = cache_node.prev
+        cache_node.prev = cache_node.next = cache_root
+        cache_root.prev = cache_root.next = cache_node
+        new_freq_node.next.prev = new_freq_node.prev.next = new_freq_node
+        cache_node.parent = cache_root.parent
 
-
-def _retrieve_undecorated_function(func):
-    """
-    Retrieve the original (undecorated) function by a given decorated one.
-    :param func: The decorated function
-    :return: The original function
-    """
-    if not hasattr(func, 'original'):
-        raise TypeError('Unable to retrieve the undecorated function: The function '
-                        + func.__name__ + ' is not decorated with @cached')
-    return func.original
-
-
-def _error_unrecognized_function(func):
-    """
-    Raise an error caused by an unrecognized function.
-    :param func:
-    :return:
-    """
-    if not _is_function(func):
-        raise TypeError(str(func) + ' is not a function')
     else:
-        raise NameError('Function <' + func.__name__ + '> not found')
+        # We can move the cache node to the cache list of the next node on the frequency list
+
+        # Find the head element of the next cache list
+        next_cache_head = freq_node.next.cache_head
+
+        # Modify references
+        cache_node.prev.next = cache_node.next
+        cache_node.next.prev = cache_node.prev
+        cache_node.next = next_cache_head.next
+        cache_node.prev = next_cache_head
+        next_cache_head.next.prev = next_cache_head.next = cache_node
+        cache_node.parent = freq_node.next
+
+    # check the status of the current frequency node
+    if freq_node.cache_head.next == freq_node.cache_head:
+        # Getting here means that we just moved away the only data node in the cache list
+        # Note: there is still an empty sentinel node
+        # We then need to destroy the sentinel node and its parent frequency node too
+        freq_node.cache_head.destroy()
+        freq_node.destroy()
+
+    return cache_node.value
 
 
-def _retrieve_safe_function_id(func):
+class _DummyWithable(object):
     """
-    Retrieve the id of the original (undecorated) function by a given decorated one.
-    :param func: The decorated function
-    :return: The id of the original function
+    This class is used to create instances that can bypass "with" statements
     """
-    function_id = id(_retrieve_undecorated_function(func))
-    if function_id not in _cache.keys():  # panic
-        _error_unrecognized_function(func)
-    return function_id
+
+    __slots__ = ()
+
+    def __enter__(self):
+        pass
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        pass
 
 
-def _include_undecorated_function(key='original'):
-    """
-    Decorator to include original function in a decorated one
-
-    e.g.
-    @include_undecorated_function()
-    def shout(f):
-        def _():
-            string = f()
-            return string.upper()
-        return _
-
-
-    @shout
-    def hello():
-        return 'hello world'
-
-    print hello()               # HELLO WORLD
-    print hello.original()      # hello world
-
-    :param key: The key to access the original function
-    :return: decorator
-    """
-    def this_decorator(decorator):
-        def wrapper(func):
-            decorated = decorator(func)
-            setattr(decorated, key, func)
-            return decorated
-        return wrapper
-    return this_decorator
+# Named type CacheInfo
+_CacheInfo = namedtuple('CacheInfo', ['hits', 'misses', 'current_size', 'max_size', 'algorithm', 'ttl', 'thread_safe'])
 
 
 if __name__ == '__main__':
@@ -225,3 +740,5 @@ if __name__ == '__main__':
     sys.stderr.write('python-memoization v' + __version__ +
                      ': A minimalist functional caching lib for Python, with TTL and auto memory management support.\n')
     sys.stderr.write('Go to https://github.com/lonelyenvoy/python-memoization for usage and more details.\n')
+
+

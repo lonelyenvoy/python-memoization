@@ -14,7 +14,7 @@ except (ImportError, AttributeError):
 
 # Public symbols
 __all__ = ['cached', 'CachingAlgorithmFlag', 'FIFO', 'LRU', 'LFU']
-__version__ = '0.1.0-alpha'
+__version__ = '0.1.1-alpha'
 
 
 class CachingAlgorithmFlag(enum.IntFlag):
@@ -744,7 +744,7 @@ _CacheInfo = namedtuple('CacheInfo', ['hits', 'misses', 'current_size', 'max_siz
 if __name__ == '__main__':
     import sys
     sys.stderr.write('python-memoization v' + __version__ +
-                     ': A minimalist functional caching lib for Python, with TTL and auto memory management support.\n')
+                     ': A powerful caching library for Python, with TTL support and multiple algorithm options.\n')
     sys.stderr.write('Go to https://github.com/lonelyenvoy/python-memoization for usage and more details.\n')
 
 

@@ -1,5 +1,5 @@
 # python-memoization
 
-A minimalist functional caching lib for Python, with TTL and auto memory management support.
+A powerful caching library for Python, with TTL support and multiple algorithm options.
 
 For usage and details, see https://github.com/lonelyenvoy/python-memoization

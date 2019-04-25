@@ -173,6 +173,20 @@ class TestMemoization(unittest.TestCase):
         self._general_ttl_test(f11)
         self._check_lfu_cache_clearing(f11)
 
+    def test_memoization_for_unhashable_arguments_with_FIFO(self):
+        self._general_unhashable_arguments_test(f3)
+        f3.cache_clear()
+        self._check_empty_cache_after_clearing(f3)
+
+    def test_memoization_for_unhashable_arguments_with_LRU(self):
+        self._general_unhashable_arguments_test(f4)
+        f4.cache_clear()
+        self._check_empty_cache_after_clearing(f4)
+
+    def test_memoization_for_unhashable_arguments_with_LFU(self):
+        self._general_unhashable_arguments_test(f5)
+        self._check_lfu_cache_clearing(f5)
+
 
     def _general_test(self, tested_function, algorithm, hits, misses, in_cache, not_in_cache):
         # clear
@@ -357,6 +371,43 @@ class TestMemoization(unittest.TestCase):
         self.assertEqual(info.current_size, 1)
         self.assertIn(key, tested_function._cache)
         self.assertEqual(exec_times[tested_function.__name__], 2)
+
+    def _general_unhashable_arguments_test(self, tested_function):
+        args = ([1, 2, 3], {'this': 'is unhashable'}, ['yet', ['another', ['complex', {'type, ': 'isn\'t it?'}]]])
+        for arg in args:
+            # clear
+            exec_times[tested_function.__name__] = 0
+            tested_function.cache_clear()
+
+            key = _make_key((arg,), None)
+            tested_function(arg)
+            self.assertIn(key, tested_function._cache)
+
+            if isinstance(arg, list):
+                arg.append(0)
+            elif isinstance(arg, dict):
+                arg['foo'] = 'bar'
+            else:
+                raise TypeError
+            key = _make_key((arg,), None)
+            tested_function(arg)
+            self.assertIn(key, tested_function._cache)
+
+            if isinstance(arg, list):
+                arg.pop()
+            elif isinstance(arg, dict):
+                del arg['foo']
+            else:
+                raise TypeError
+            key = _make_key((arg,), None)
+            tested_function(arg)
+            self.assertIn(key, tested_function._cache)
+
+            self.assertEqual(exec_times[tested_function.__name__], 2)
+            info = tested_function.cache_info()
+            self.assertEqual(info.hits, 1)
+            self.assertEqual(info.misses, 2)
+            self.assertEqual(info.current_size, 2)
 
 
 if __name__ == '__main__':

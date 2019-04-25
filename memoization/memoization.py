@@ -9,7 +9,7 @@ try:
     import enum  # only works on Python 3.5+
     enum.IntFlag  # only works on Python 3.6+
 except (ImportError, AttributeError):
-    import _memoization_backport_enum as enum
+    import _memoization_backport_enum as enum  # backport for Python 3.4 and 3.5
 
 
 # Public symbols

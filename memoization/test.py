@@ -4,6 +4,8 @@ from itertools import chain
 from threading import Thread
 import random
 from threading import Lock
+import weakref
+import gc
 
 
 exec_times = {}    # executed time of each tested function
@@ -119,29 +121,39 @@ class TestMemoization(unittest.TestCase):
     def test_memoization_with_FIFO(self):
         self.assertTrue(hasattr(f3, '_fifo_root'))
         self._fifo_test(f3)
+        f3.cache_clear()
+        self._check_empty_cache_after_clearing(f3)
 
     def test_memoization_with_LRU(self):
         self.assertTrue(hasattr(f4, '_lru_root'))
         self._lru_test(f4)
+        f4.cache_clear()
+        self._check_empty_cache_after_clearing(f4)
 
     def test_memoization_with_LFU(self):
         self.assertTrue(hasattr(f5, '_lfu_root'))
         self._lfu_test(f5)
+        self._check_lfu_cache_clearing(f5)
 
     def test_memoization_with_FIFO_multithread(self):
         self.assertTrue(hasattr(f6, '_fifo_root'))
         self._general_multithreading_test(f6, CachingAlgorithmFlag.FIFO)
         self._fifo_test(f6)
+        f6.cache_clear()
+        self._check_empty_cache_after_clearing(f6)
 
     def test_memoization_with_LRU_multithread(self):
         self.assertTrue(hasattr(f7, '_lru_root'))
         self._general_multithreading_test(f7, CachingAlgorithmFlag.LRU)
         self._lru_test(f7)
+        f7.cache_clear()
+        self._check_empty_cache_after_clearing(f7)
 
     def test_memoization_with_LFU_multithread(self):
         self.assertTrue(hasattr(f8, '_lfu_root'))
         self._general_multithreading_test(f8, CachingAlgorithmFlag.LFU)
         self._lfu_test(f8)
+        self._check_lfu_cache_clearing(f8)
 
     def _general_test(self, tested_function, algorithm, hits, misses, in_cache, not_in_cache):
         # clear
@@ -264,6 +276,29 @@ class TestMemoization(unittest.TestCase):
         self._general_test(tested_function=tested_function, algorithm=CachingAlgorithmFlag.LFU, hits=8, misses=23,
                            in_cache=(18, 17, 16, 19, 100), not_in_cache=(99, 15))
         self.assertEqual(exec_times[tested_function.__name__], 23)
+
+    def _check_empty_cache_after_clearing(self, tested_function):
+        info = tested_function.cache_info()
+        self.assertEqual(info.hits, 0)
+        self.assertEqual(info.misses, 0)
+        self.assertEqual(info.current_size, 0)
+        self.assertEqual(info.max_size, 5)
+
+        cache = tested_function._cache
+        self.assertEqual(len(cache), 0)
+
+    def _check_lfu_cache_clearing(self, tested_function):
+        root_next = weakref.ref(tested_function._lfu_root.next)
+        first_cache_head = weakref.ref(tested_function._lfu_root.next.cache_head)
+        self.assertIsNotNone(root_next())
+        self.assertIsNotNone(first_cache_head())
+
+        tested_function.cache_clear()
+        self._check_empty_cache_after_clearing(tested_function)
+
+        gc.collect()
+        self.assertIsNone(root_next())
+        self.assertIsNone(first_cache_head())
 
 
 if __name__ == '__main__':

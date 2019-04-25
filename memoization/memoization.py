@@ -388,7 +388,7 @@ def _create_cached_wrapper(user_function, max_size, ttl, algorithm, thread_safe)
                 with lock:
                     cache.clear()
                     hits = misses = 0
-                    lfu_freq_list_root = _FreqNode.root()
+                    lfu_freq_list_root.prev = lfu_freq_list_root.next = lfu_freq_list_root
 
             if ttl is None:
 
@@ -502,7 +502,7 @@ class _CacheNode(object):
     Cache Node for LFU Cache
     """
 
-    __slots__ = 'prev', 'next', 'parent', 'key', 'value'
+    __slots__ = 'prev', 'next', 'parent', 'key', 'value', '__weakref__'
 
     def __init__(self, prev=None, next=None, parent=None, key=None, value=None):
         self.prev = prev
@@ -536,7 +536,7 @@ class _FreqNode(object):
     Frequency Node for LFU Cache
     """
 
-    __slots__ = 'prev', 'next', 'frequency', 'cache_head'
+    __slots__ = 'prev', 'next', 'frequency', 'cache_head', '__weakref__'
 
     def __init__(self, prev=None, next=None, frequency=None, cache_head=None):
         self.prev = prev

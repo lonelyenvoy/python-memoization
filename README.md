@@ -96,24 +96,27 @@ def get_compiled_binary(filename):
 By default, if you don't specify ```max_size```, the cache can hold unlimited number of items.
 When the cache is fully occupied, the former data will be overwritten by a certain algorithm described below.
 
-### Choosing caching algorithm
+### Choosing your caching algorithm
 
 ```python
 from memoization import cached, CachingAlgorithmFlag
 
-@cached(max_size=128, algorithm=CachingAlgorithmFlag.LFU)  # the cache overwrites items using the Least Frequently Used algorithm
-def func(argument):
+@cached(max_size=128, algorithm=CachingAlgorithmFlag.LFU)  # the cache overwrites items using the LFU algorithm
+def func(arguments):
     ...
 ```
 
-Possible values for ```algorithm``` are ```CachingAlgorithmFlag.LRU``` (default), ```CachingAlgorithmFlag.LFU``` and ```CachingAlgorithmFlag.FIFO```.
+Possible values for ```algorithm``` are 
+_Least Recently Used_ ```CachingAlgorithmFlag.LRU``` (default), 
+_Least Frequently Used_ ```CachingAlgorithmFlag.LFU``` and 
+_First In First Out_ ```CachingAlgorithmFlag.FIFO```.
 This option is valid only when a ```max_size``` is explicitly specified.
 
 ### Thread safe?
 
 ```python
 @cached(thread_safe=False)
-def func(argument):
+def func(arguments):
     ...
 ```
 

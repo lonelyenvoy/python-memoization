@@ -6,6 +6,7 @@ import random
 from threading import Lock
 import weakref
 import gc
+import time
 
 
 exec_times = {}    # executed time of each tested function
@@ -155,6 +156,24 @@ class TestMemoization(unittest.TestCase):
         self._lfu_test(f8)
         self._check_lfu_cache_clearing(f8)
 
+    def test_memoization_with_FIFO_TTL(self):
+        self.assertTrue(hasattr(f9, '_fifo_root'))
+        self._general_ttl_test(f9)
+        f9.cache_clear()
+        self._check_empty_cache_after_clearing(f9)
+
+    def test_memoization_with_LRU_TTL(self):
+        self.assertTrue(hasattr(f10, '_lru_root'))
+        self._general_ttl_test(f10)
+        f10.cache_clear()
+        self._check_empty_cache_after_clearing(f10)
+
+    def test_memoization_with_LFU_TTL(self):
+        self.assertTrue(hasattr(f11, '_lfu_root'))
+        self._general_ttl_test(f11)
+        self._check_lfu_cache_clearing(f11)
+
+
     def _general_test(self, tested_function, algorithm, hits, misses, in_cache, not_in_cache):
         # clear
         exec_times[tested_function.__name__] = 0
@@ -299,6 +318,45 @@ class TestMemoization(unittest.TestCase):
         gc.collect()
         self.assertIsNone(root_next())
         self.assertIsNone(first_cache_head())
+
+    def _general_ttl_test(self, tested_function):
+        # clear
+        exec_times[tested_function.__name__] = 0
+        tested_function.cache_clear()
+
+        arg = 1
+        key = _make_key((arg,), None)
+        tested_function(arg)
+        time.sleep(0.25)  # wait for a short time
+
+        info = tested_function.cache_info()
+        self.assertEqual(info.hits, 0)
+        self.assertEqual(info.misses, 1)
+        self.assertEqual(info.current_size, 1)
+        self.assertIn(key, tested_function._cache)
+
+        tested_function(arg)  # this WILL NOT call the tested function
+
+        info = tested_function.cache_info()
+        self.assertEqual(info.hits, 1)
+        self.assertEqual(info.misses, 1)
+        self.assertEqual(info.current_size, 1)
+        self.assertIn(key, tested_function._cache)
+        self.assertEqual(exec_times[tested_function.__name__], 1)
+
+        time.sleep(0.35)  # wait until the cache expires
+
+        info = tested_function.cache_info()
+        self.assertEqual(info.current_size, 1)
+
+        tested_function(arg)  # this WILL call the tested function
+
+        info = tested_function.cache_info()
+        self.assertEqual(info.hits, 1)
+        self.assertEqual(info.misses, 2)
+        self.assertEqual(info.current_size, 1)
+        self.assertIn(key, tested_function._cache)
+        self.assertEqual(exec_times[tested_function.__name__], 2)
 
 
 if __name__ == '__main__':

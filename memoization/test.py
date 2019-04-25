@@ -220,7 +220,7 @@ class TestMemoization(unittest.TestCase):
         for thread in threads:
             thread.join()
 
-        self.assertEqual(exec_times[tested_function.__name__], 5)
+        self.assertGreaterEqual(exec_times[tested_function.__name__], 5)
         info = tested_function.cache_info()
         self.assertEqual(info.hits, number_of_keys * number_of_threads - 5)
         self.assertEqual(info.misses, 5)
@@ -268,22 +268,3 @@ class TestMemoization(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
-
-
-"""
-TODO
-
-1.  Test cache_clear with weakref
-2.  Test unhashable types (list, dict, etc.)
-3.  Compare the code with that of version 0.0.10 to find out whether anything is missing
-4.  Optimize _insert_into_lfu_cache
-    cache is full > first_freq_node.frequency != 1: no need to delete node
-5.  Refactor code for better readability
-6.  Add comments in code when necessary
-7.  Add documentation (including "PR welcome" in README)
-8.  Ensure compatability with Python 2.6-2.7 and 3.2-3.7
-9.  Write __init__.py
-10. Write examples.py
-11. Performance optimization in the future
-
-"""

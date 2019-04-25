@@ -1,10 +1,16 @@
 from functools import partial, update_wrapper
 from collections import namedtuple
-import enum
 import time
 from threading import RLock
 import inspect
 import warnings
+
+try:
+    import enum  # only works on Python 3.5+
+    enum.IntFlag  # only works on Python 3.6+
+except (ImportError, AttributeError):
+    import _memoization_backport_enum as enum
+
 
 # Public symbols
 __all__ = ['cached', 'CachingAlgorithmFlag', 'FIFO', 'LRU', 'LFU']

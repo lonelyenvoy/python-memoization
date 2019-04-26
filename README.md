@@ -30,7 +30,7 @@ in Python 3, and you may be wondering why I am reinventing the wheel.
 
 Well, actually not. This lib is based on ```functools```. Please find below the comparison with ```lru_cache```.
 
-|Features|```functools.lru_cache```|```memoization.cached```|
+|Features|```functools.lru_cache```|```memoization```|
 |--------|-------------------|-----------|
 |Configurable max size|✔️|✔️|
 |Thread safety|✔️|✔️|

@@ -44,7 +44,7 @@ Well, actually not. This lib is based on ```functools```. Please find below the 
 |Partial cache clearing|No support|Pending implementation in v0.2.x|
 |Python version|3.2+|2.6, 2.7, 3.4+|
 
-More importantly, ```memoization``` solves some drawbacks of ```functools.lru_cache```:
+```memoization``` solves some drawbacks of ```functools.lru_cache```:
 
 1. ```lru_cache``` does not support __unhashable types__, which means function arguments cannot contain dict or list.
 

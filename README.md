@@ -88,7 +88,8 @@ def func(arg):
     ...  # do something slow
 ```
 
-The results of ```func()``` are cached. Repetitive calls to ```func()``` with the same arguments run ```func()``` only once, enhancing performance.
+Simple enough - the results of ```func()``` are cached. 
+Repetitive calls to ```func()``` with the same arguments run ```func()``` only once, enhancing performance.
 
 
 ## Advanced features

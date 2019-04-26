@@ -25,12 +25,12 @@ A powerful caching library for Python, with TTL support and multiple algorithm o
 
 ## Why choose this library?
 
-Perhaps you know about [functools.lru_cache](https://docs.python.org/3/library/functools.html#functools.lru_cache) 
-in Python 3, and you may be wondering why I am reinventing the wheel based on it. 
+Perhaps you know about [```functools.lru_cache```](https://docs.python.org/3/library/functools.html#functools.lru_cache)
+in Python 3, and you may be wondering why I am reinventing the wheel.
 
-Well, because this one is more powerful. Please find below the comparison with lru_cache.
+Well, actually not. This lib is based on ```functools```. Please find below the comparison with ```lru_cache```.
 
-|Features|functools.lru_cache|memoization|
+|Features|```functools.lru_cache```|```memoization.cached```|
 |--------|-------------------|-----------|
 |Configurable max size|✔️|✔️|
 |Thread safety|✔️|✔️|
@@ -44,8 +44,33 @@ Well, because this one is more powerful. Please find below the comparison with l
 |Partial cache clearing|No support|Pending implementation in v0.2.x|
 |Python version|3.2+|2.6, 2.7, 3.4+|
 
-To support function arguments with unhashable types, the caching is always typed, 
-which means ```f(3)``` and ```f(3.0)``` will be treated as different calls and cached separately.
+More importantly, ```memoization``` solves some drawbacks of ```functools.lru_cache```:
+
+1. ```lru_cache``` does not support __unhashable types__, which means function arguments cannot contain dict or list.
+
+```python
+>>> from functools import lru_cache
+>>> @lru_cache()
+... def f(x): return x
+... 
+>>> f([1, 2])  # unsupported
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+TypeError: unhashable type: 'list'
+```
+
+2. ```lru_cache``` is vulnerable to [__hash collision attack__](https://learncryptography.com/hash-functions/hash-collision-attack)
+   and can be hacked or compromised. In ```memoization```, caching is always typed, which means ```f(3)``` and 
+   ```f(3.0)``` will be treated as different calls and cached separately. This prevent the attack from happening
+   , or at least make it a lot harder.
+
+```python
+>>> hash((1,))
+3430019387558
+>>> hash(3430019387558.0)  # two different arguments have an identical hash value
+3430019387558
+```
+
 
 ## Installation
 
@@ -56,13 +81,6 @@ pip install memoization
 ## Usage in 2 lines
 
 ```python
-def fun(arg):
-    return do_something_slow(arg)
-```
-
-Wanna caching this function? That's what you need:
-
-```python
 from memoization import cached
 
 @cached
@@ -70,7 +88,7 @@ def fun(arg):
     return do_something_slow(arg)
 ```
 
-The results of ```fun()``` are now magically cached! Repetitive calls to ```fun()``` with the same arguments run ```fun()``` only once, enhancing performance.
+The results of ```fun()``` are cached. Repetitive calls to ```fun()``` with the same arguments run ```fun()``` only once, enhancing performance.
 
 
 ## Advanced features

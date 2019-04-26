@@ -62,7 +62,7 @@ TypeError: unhashable type: 'list'
 2. ```lru_cache``` is vulnerable to [__hash collision attack__](https://learncryptography.com/hash-functions/hash-collision-attack)
    and can be hacked or compromised. In ```memoization```, caching is always typed, which means ```f(3)``` and 
    ```f(3.0)``` will be treated as different calls and cached separately. This prevent the attack from happening
-   , or at least make it a lot harder.
+   (or at least make it a lot harder).
 
 ```python
 >>> hash((1,))
@@ -84,31 +84,33 @@ pip install memoization
 from memoization import cached
 
 @cached
-def fun(arg):
-    return do_something_slow(arg)
+def func(arg):
+    ...  # do something slow
 ```
 
-The results of ```fun()``` are cached. Repetitive calls to ```fun()``` with the same arguments run ```fun()``` only once, enhancing performance.
+The results of ```func()``` are cached. Repetitive calls to ```func()``` with the same arguments run ```func()``` only once, enhancing performance.
 
 
 ## Advanced features
+
+Configurable options include `ttl`, `max_size`, `algorithm` and `thread_safe`.
 
 ### TTL (Time-To-Live)
 
 ```python
 @cached(ttl=5)  # the cache expires after 5 seconds
-def read_user_info(user):
-    return expensive_db_query(user)
+def expensive_db_query(user_id):
+    ...
 ```
 
-For impure functions, TTL will be a solution. This will be useful when the function returns resources that is valid only for a short time, e.g. fetching something from DB.
+For impure functions, TTL (in second) will be a solution. This will be useful when the function returns resources that is valid only for a short time, e.g. fetching something from databases.
 
 ### Limited cache capacity
  
 ```python
 @cached(max_size=128)  # the cache holds no more than 128 items
-def get_compiled_binary(filename):
-    return a_very_large_object(filename)
+def get_a_very_large_object(filename):
+    ...
 ```
 
 By default, if you don't specify ```max_size```, the cache can hold unlimited number of items.
@@ -120,21 +122,23 @@ When the cache is fully occupied, the former data will be overwritten by a certa
 from memoization import cached, CachingAlgorithmFlag
 
 @cached(max_size=128, algorithm=CachingAlgorithmFlag.LFU)  # the cache overwrites items using the LFU algorithm
-def func(arguments):
+def func(arg):
     ...
 ```
 
-Possible values for ```algorithm``` are 
-_Least Recently Used_ ```CachingAlgorithmFlag.LRU``` (default), 
-_Least Frequently Used_ ```CachingAlgorithmFlag.LFU``` and 
-_First In First Out_ ```CachingAlgorithmFlag.FIFO```.
+Possible values for ```algorithm``` are:
+
+- `CachingAlgorithmFlag.LRU`: _Least Recently Used_  (default)
+- `CachingAlgorithmFlag.LFU`: _Least Frequently Used_ 
+- `CachingAlgorithmFlag.FIFO`: _First In First Out_ 
+
 This option is valid only when a ```max_size``` is explicitly specified.
 
 ### Thread safe?
 
 ```python
 @cached(thread_safe=False)
-def func(arguments):
+def func(arg):
     ...
 ```
 
@@ -151,6 +155,14 @@ CacheInfo(hits=0, misses=0, current_size=0, max_size=None, algorithm=<CachingAlg
 ```
 
 With ```cache_info```, you can retrieve the number of ```hits``` and ```misses``` of the cache, and other information indicating the caching status.
+
+- `hits`: the number of cache hits
+- `misses`: the number of cache misses
+- `current_size`: the number of items that were cached
+- `max_size`: the maximum number of items that can be cached (user-specified)
+- `algorithm`: caching algorithm (user-specified)
+- `ttl`: Time-To-Live value (user-specified)
+- `thread_safe`: whether the cache is thread safe (user-specified)
 
 ### Other APIs
 

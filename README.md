@@ -61,8 +61,8 @@ TypeError: unhashable type: 'list'
 
 2. ```lru_cache``` is vulnerable to [__hash collision attack__](https://learncryptography.com/hash-functions/hash-collision-attack)
    and can be hacked or compromised. In ```memoization```, caching is always typed, which means ```f(3)``` and 
-   ```f(3.0)``` will be treated as different calls and cached separately. This prevent the attack from happening
-   (or at least make it a lot harder).
+   ```f(3.0)``` will be treated as different calls and cached separately. This prevents the attack from happening
+   (or at least makes it a lot harder).
 
 ```python
 >>> hash((1,))

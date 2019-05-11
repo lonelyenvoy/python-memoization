@@ -14,7 +14,7 @@ except (ImportError, AttributeError):
 
 # Public symbols
 __all__ = ['cached', 'CachingAlgorithmFlag', 'FIFO', 'LRU', 'LFU']
-__version__ = '0.1.1-alpha'
+__version__ = '0.1.2-alpha'
 
 
 class CachingAlgorithmFlag(enum.IntFlag):
@@ -46,6 +46,7 @@ def cached(user_function=None, max_size=None, ttl=None, algorithm=CachingAlgorit
     """
 
     # Adapt to the usage of calling the decorator and that of not calling it
+    # i.e. @cached and @cached()
     if user_function is None:
         return partial(cached, max_size=max_size, ttl=ttl, algorithm=algorithm, thread_safe=thread_safe)
 
@@ -88,6 +89,34 @@ def _create_cached_wrapper(user_function, max_size, ttl, algorithm, thread_safe)
     make_key = _make_key
     lock = RLock() if thread_safe else _DummyWithable()  # ensure thread-safe
 
+    ##############################################################################################################
+    # For TTL only
+    ##############################################################################################################
+
+    if ttl is None:
+
+        def make_cache_value(result):
+            return result
+
+        def is_cache_value_valid(value):
+            return True
+
+        def retrieve_result_from_cache_value(value):
+            return value
+
+    else:
+
+        def make_cache_value(result):
+            return result, time.time() + ttl
+
+        def is_cache_value_valid(value):
+            return time.time() < value[1]
+
+        def retrieve_result_from_cache_value(value):
+            return value[0]
+
+    ##############################################################################################################
+
     if max_size == 0:
 
         def cache_clear():
@@ -110,45 +139,21 @@ def _create_cached_wrapper(user_function, max_size, ttl, algorithm, thread_safe)
                 cache.clear()
                 hits = misses = 0
 
-        if ttl is None:
-
-            # Unlimited cache, no ttl
-            def wrapper(*args, **kwargs):
-                nonlocal hits, misses
-                key = make_key(args, kwargs)
-                result = cache.get(key, sentinel)
-                if result is not sentinel:
-                    with lock:
-                        hits += 1
-                    return result
-                else:
-                    with lock:
-                        misses += 1
-                    result = user_function(*args, **kwargs)
-                    cache[key] = result
-                    return result
-
-        else:
-
-            # Indexes of cache value
-            _DATA = 0
-            _EXPIRES_AT = 1
-
-            # Unlimited cache, with ttl
-            def wrapper(*args, **kwargs):
-                nonlocal hits, misses
-                key = make_key(args, kwargs)
-                value = cache.get(key, sentinel)
-                if value is not sentinel and time.time() < value[_EXPIRES_AT]:
-                    with lock:
-                        hits += 1
-                    return value[_DATA]
-                else:
-                    with lock:
-                        misses += 1
-                    result = user_function(*args, **kwargs)
-                    cache[key] = (result, time.time() + ttl)
-                    return result
+        # Unlimited cache
+        def wrapper(*args, **kwargs):
+            nonlocal hits, misses
+            key = make_key(args, kwargs)
+            value = cache.get(key, sentinel)
+            if value is not sentinel and is_cache_value_valid(value):
+                with lock:
+                    hits += 1
+                return retrieve_result_from_cache_value(value)
+            else:
+                with lock:
+                    misses += 1
+                result = user_function(*args, **kwargs)
+                cache[key] = make_cache_value(result)
+                return result
 
     else:
         if algorithm == CachingAlgorithmFlag.FIFO or algorithm == CachingAlgorithmFlag.LRU:
@@ -171,210 +176,101 @@ def _create_cached_wrapper(user_function, max_size, ttl, algorithm, thread_safe)
 
             if algorithm == CachingAlgorithmFlag.FIFO:
 
-                if ttl is None:
-
-                    # Limited cache, FIFO, no ttl
-                    def wrapper(*args, **kwargs):
-                        nonlocal hits, misses, root, full
-                        key = make_key(args, kwargs)
-                        with lock:
-                            node = cache.get(key, sentinel)
-                            if node is not sentinel:
-                                hits += 1
-                                return node[_VALUE]
-                            misses += 1
-                        result = user_function(*args, **kwargs)
-                        with lock:
-                            if key in cache:
-                                # result added to the cache while the lock was released
-                                # no need to add again
-                                pass
-                            elif full:
-                                # switch root to the oldest element in the cache
-                                old_root = root
-                                root = root[_NEXT]
-                                # keep references of root[_KEY] and root[_VALUE] to prevent arbitrary GC
-                                old_key = root[_KEY]
-                                old_value = root[_VALUE]
-                                # overwrite the content of the old root
-                                old_root[_KEY] = key
-                                old_root[_VALUE] = result
-                                # clear the content of the new root
-                                root[_KEY] = root[_VALUE] = None
-                                # delete from cache
-                                del cache[old_key]
-                                # save the result to the cache
-                                cache[key] = old_root
-                            else:
-                                # add a node to the linked list
-                                last = root[_PREV]
-                                node = [last, root, key, result]  # new node
-                                cache[key] = root[_PREV] = last[_NEXT] = node  # save result to the cache
-                                # check whether the cache is full
-                                full = (cache.__len__() >= max_size)
-                        return result
-
-                else:
-
-                    # Indexes of values in node[_VALUE]
-                    _DATA = 0
-                    _EXPIRES_AT = 1
-
-                    # Limited cache, FIFO, with ttl
-                    def wrapper(*args, **kwargs):
-                        nonlocal hits, misses, root, full
-                        key = make_key(args, kwargs)
-                        with lock:
-                            node = cache.get(key, sentinel)
-                            if node is not sentinel and time.time() < node[_VALUE][_EXPIRES_AT]:
-                                hits += 1
-                                return node[_VALUE][_DATA]
-                            misses += 1
-                        result = user_function(*args, **kwargs)
-                        expires_at = time.time() + ttl
-                        with lock:
-                            if key in cache:
-                                # result added to the cache while the lock was released
-                                # no need to add again
-                                pass
-                            elif full:
-                                # switch root to the oldest element in the cache
-                                old_root = root
-                                root = root[_NEXT]
-                                # keep references of root[_KEY] and root[_VALUE] to prevent arbitrary GC
-                                old_key = root[_KEY]
-                                old_value = root[_VALUE]
-                                # overwrite the content of the old root
-                                old_root[_KEY] = key
-                                old_root[_VALUE] = (result, expires_at)
-                                # clear the content of the new root
-                                root[_KEY] = root[_VALUE] = None
-                                # delete from cache
-                                del cache[old_key]
-                                # save the result to the cache
-                                cache[key] = old_root
-                            else:
-                                # add a node to the linked list
-                                last = root[_PREV]
-                                node = [last, root, key, (result, expires_at)]  # new node
-                                cache[key] = root[_PREV] = last[_NEXT] = node  # save result to the cache
-                                # check whether the cache is full
-                                full = (cache.__len__() >= max_size)
-                        return result
+                # Limited cache, FIFO
+                def wrapper(*args, **kwargs):
+                    nonlocal hits, misses, root, full
+                    key = make_key(args, kwargs)
+                    with lock:
+                        node = cache.get(key, sentinel)
+                        if node is not sentinel and is_cache_value_valid(node[_VALUE]):
+                            hits += 1
+                            return retrieve_result_from_cache_value(node[_VALUE])
+                        misses += 1
+                    result = user_function(*args, **kwargs)
+                    with lock:
+                        if key in cache:
+                            # result added to the cache while the lock was released
+                            # no need to add again
+                            pass
+                        elif full:
+                            # switch root to the oldest element in the cache
+                            old_root = root
+                            root = root[_NEXT]
+                            # keep references of root[_KEY] and root[_VALUE] to prevent arbitrary GC
+                            old_key = root[_KEY]
+                            old_value = root[_VALUE]
+                            # overwrite the content of the old root
+                            old_root[_KEY] = key
+                            old_root[_VALUE] = make_cache_value(result)
+                            # clear the content of the new root
+                            root[_KEY] = root[_VALUE] = None
+                            # delete from cache
+                            del cache[old_key]
+                            # save the result to the cache
+                            cache[key] = old_root
+                        else:
+                            # add a node to the linked list
+                            last = root[_PREV]
+                            node = [last, root, key, make_cache_value(result)]  # new node
+                            cache[key] = root[_PREV] = last[_NEXT] = node  # save result to the cache
+                            # check whether the cache is full
+                            full = (cache.__len__() >= max_size)
+                    return result
 
                 wrapper._fifo_root = root
                 wrapper._root_name = '_fifo_root'
 
             else:  # algorithm == CachingAlgorithmFlag.LRU
 
-                if ttl is None:
-
-                    # Limited cache, LRU, no ttl
-                    def wrapper(*args, **kwargs):
-                        nonlocal hits, misses, root, full
-                        key = make_key(args, kwargs)
-                        with lock:
-                            node = cache.get(key, sentinel)
-                            if node is not sentinel:
-                                # move the node to the front of the list
-                                node_prev, node_next, _, result = node
-                                node_prev[_NEXT] = node_next
-                                node_next[_PREV] = node_prev
-                                node[_PREV] = root[_PREV]
-                                node[_NEXT] = root
-                                root[_PREV][_NEXT] = node
-                                root[_PREV] = node
-                                # update statistics
-                                hits += 1
-                                return result
-                            misses += 1
-                        result = user_function(*args, **kwargs)
-                        with lock:
-                            if key in cache:
-                                # result added to the cache while the lock was released
-                                # no need to add again
-                                pass
-                            elif full:
-                                # switch root to the oldest element in the cache
-                                old_root = root
-                                root = root[_NEXT]
-                                # keep references of root[_KEY] and root[_VALUE] to prevent arbitrary GC
-                                old_key = root[_KEY]
-                                old_value = root[_VALUE]
-                                # overwrite the content of the old root
-                                old_root[_KEY] = key
-                                old_root[_VALUE] = result
-                                # clear the content of the new root
-                                root[_KEY] = root[_VALUE] = None
-                                # delete from cache
-                                del cache[old_key]
-                                # save the result to the cache
-                                cache[key] = old_root
-                            else:
-                                # add a node to the linked list
-                                last = root[_PREV]
-                                node = [last, root, key, result]  # new node
-                                cache[key] = root[_PREV] = last[_NEXT] = node  # save result to the cache
-                                # check whether the cache is full
-                                full = (cache.__len__() >= max_size)
-                        return result
-
-                else:
-
-                    # Indexes of values in node[_VALUE]
-                    _DATA = 0
-                    _EXPIRES_AT = 1
-
-                    # Limited cache, LRU, with ttl
-                    def wrapper(*args, **kwargs):
-                        nonlocal hits, misses, root, full
-                        key = make_key(args, kwargs)
-                        with lock:
-                            node = cache.get(key, sentinel)
-                            if node is not sentinel and time.time() < node[_VALUE][_EXPIRES_AT]:
-                                # move the node to the front of the list
-                                node_prev, node_next, _, result = node
-                                node_prev[_NEXT] = node_next
-                                node_next[_PREV] = node_prev
-                                node[_PREV] = root[_PREV]
-                                node[_NEXT] = root
-                                root[_PREV][_NEXT] = node
-                                root[_PREV] = node
-                                # update statistics
-                                hits += 1
-                                return result[_DATA]
-                            misses += 1
-                        result = user_function(*args, **kwargs)
-                        expires_at = time.time() + ttl
-                        with lock:
-                            if key in cache:
-                                # result added to the cache while the lock was released
-                                # no need to add again
-                                pass
-                            elif full:
-                                # switch root to the oldest element in the cache
-                                old_root = root
-                                root = root[_NEXT]
-                                # keep references of root[_KEY] and root[_VALUE] to prevent arbitrary GC
-                                old_key = root[_KEY]
-                                old_value = root[_VALUE]
-                                # overwrite the content of the old root
-                                old_root[_KEY] = key
-                                old_root[_VALUE] = (result, expires_at)
-                                # clear the content of the new root
-                                root[_KEY] = root[_VALUE] = None
-                                # delete from cache
-                                del cache[old_key]
-                                # save the result to the cache
-                                cache[key] = old_root
-                            else:
-                                # add a node to the linked list
-                                last = root[_PREV]
-                                node = [last, root, key, (result, expires_at)]  # new node
-                                cache[key] = root[_PREV] = last[_NEXT] = node  # save result to the cache
-                                # check whether the cache is full
-                                full = (cache.__len__() >= max_size)
-                        return result
+                # Limited cache, LRU
+                def wrapper(*args, **kwargs):
+                    nonlocal hits, misses, root, full
+                    key = make_key(args, kwargs)
+                    with lock:
+                        node = cache.get(key, sentinel)
+                        if node is not sentinel and is_cache_value_valid(node[_VALUE]):
+                            # move the node to the front of the list
+                            node_prev, node_next, _, result = node
+                            node_prev[_NEXT] = node_next
+                            node_next[_PREV] = node_prev
+                            node[_PREV] = root[_PREV]
+                            node[_NEXT] = root
+                            root[_PREV][_NEXT] = node
+                            root[_PREV] = node
+                            # update statistics
+                            hits += 1
+                            return retrieve_result_from_cache_value(result)
+                        misses += 1
+                    result = user_function(*args, **kwargs)
+                    with lock:
+                        if key in cache:
+                            # result added to the cache while the lock was released
+                            # no need to add again
+                            pass
+                        elif full:
+                            # switch root to the oldest element in the cache
+                            old_root = root
+                            root = root[_NEXT]
+                            # keep references of root[_KEY] and root[_VALUE] to prevent arbitrary GC
+                            old_key = root[_KEY]
+                            old_value = root[_VALUE]
+                            # overwrite the content of the old root
+                            old_root[_KEY] = key
+                            old_root[_VALUE] = make_cache_value(result)
+                            # clear the content of the new root
+                            root[_KEY] = root[_VALUE] = None
+                            # delete from cache
+                            del cache[old_key]
+                            # save the result to the cache
+                            cache[key] = old_root
+                        else:
+                            # add a node to the linked list
+                            last = root[_PREV]
+                            node = [last, root, key, make_cache_value(result)]  # new node
+                            cache[key] = root[_PREV] = last[_NEXT] = node  # save result to the cache
+                            # check whether the cache is full
+                            full = (cache.__len__() >= max_size)
+                    return result
 
                 wrapper._lru_root = root
                 wrapper._root_name = '_lru_root'
@@ -390,54 +286,25 @@ def _create_cached_wrapper(user_function, max_size, ttl, algorithm, thread_safe)
                     hits = misses = 0
                     lfu_freq_list_root.prev = lfu_freq_list_root.next = lfu_freq_list_root
 
-            if ttl is None:
-
-                # Limited cache, LFU, no ttl
-                def wrapper(*args, **kwargs):
-                    nonlocal hits, misses, root, full
-                    key = make_key(args, kwargs)
-                    with lock:
-                        result = _access_lfu_cache(cache, key, sentinel)
-                        if result is not sentinel:
-                            hits += 1
-                            return result
-                        misses += 1
-                    result = user_function(*args, **kwargs)
-                    with lock:
-                        if key in cache:
-                            # result added to the cache while the lock was released
-                            # no need to add again
-                            pass
-                        else:
-                            _insert_into_lfu_cache(cache, key, result, lfu_freq_list_root, max_size)
-                    return result
-
-            else:
-
-                # Indexes of values in node.value
-                _DATA = 0
-                _EXPIRES_AT = 1
-
-                # Limited cache, LFU, with ttl
-                def wrapper(*args, **kwargs):
-                    nonlocal hits, misses, root, full
-                    key = make_key(args, kwargs)
-                    with lock:
-                        result = _access_lfu_cache(cache, key, sentinel)
-                        if result is not sentinel and time.time() < result[_EXPIRES_AT]:
-                            hits += 1
-                            return result[_DATA]
-                        misses += 1
-                    result = user_function(*args, **kwargs)
-                    expires_at = time.time() + ttl
-                    with lock:
-                        if key in cache:
-                            # result added to the cache while the lock was released
-                            # no need to add again
-                            pass
-                        else:
-                            _insert_into_lfu_cache(cache, key, (result, expires_at), lfu_freq_list_root, max_size)
-                    return result
+            # Limited cache, LFU, with ttl
+            def wrapper(*args, **kwargs):
+                nonlocal hits, misses, root, full
+                key = make_key(args, kwargs)
+                with lock:
+                    result = _access_lfu_cache(cache, key, sentinel)
+                    if result is not sentinel and is_cache_value_valid(result):
+                        hits += 1
+                        return retrieve_result_from_cache_value(result)
+                    misses += 1
+                result = user_function(*args, **kwargs)
+                with lock:
+                    if key in cache:
+                        # result added to the cache while the lock was released
+                        # no need to add again
+                        pass
+                    else:
+                        _insert_into_lfu_cache(cache, key, make_cache_value(result), lfu_freq_list_root, max_size)
+                return result
 
             wrapper._lfu_root = lfu_freq_list_root
             wrapper._root_name = '_lfu_root'

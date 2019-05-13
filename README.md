@@ -181,7 +181,7 @@ With ```cache_info```, you can retrieve the number of ```hits``` and ```misses``
 
 This project welcomes contributions from anyone.
 - [Submit bugs](https://github.com/lonelyenvoy/python-memoization/issues) and help me verify fixes.
-- [Submit pull requests](https://github.com/lonelyenvoy/python-memoization/pulls) for bug fixes and features and discuss existing proposals. Please make sure that your PR passes the tests in ```src/test.py```.
+- [Submit pull requests](https://github.com/lonelyenvoy/python-memoization/pulls) for bug fixes and features and discuss existing proposals. Please make sure that your PR passes the tests in ```test.py```.
 
 ## License
 

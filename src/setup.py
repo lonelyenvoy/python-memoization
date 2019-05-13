@@ -5,7 +5,7 @@ with open('../README.md', 'r') as f:
 
 setup(
     name='memoization',
-    version='0.1.3',
+    version='0.1.4',
     description='A powerful caching library for Python, with TTL support and multiple algorithm options. '
                 '(https://github.com/lonelyenvoy/python-memoization)',
     long_description=long_description,

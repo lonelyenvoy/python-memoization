@@ -1,5 +1,5 @@
 import unittest
-from memoization import cached, CachingAlgorithmFlag, _make_key
+from memoization import cached, CachingAlgorithmFlag, _memoization
 from itertools import chain
 from threading import Thread
 import random
@@ -9,9 +9,10 @@ import gc
 import time
 
 
-exec_times = {}    # executed time of each tested function
-lock = Lock()      # for multi-threading tests
-random.seed(100)   # set seed to ensure that test results are reproducible
+make_key = _memoization._make_key   # bind make_key function
+exec_times = {}                     # executed time of each tested function
+lock = Lock()                       # for multi-threading tests
+random.seed(100)                    # set seed to ensure that test results are reproducible
 
 for i in range(1, 12):
     exec_times['f' + str(i)] = 0  # init to zero
@@ -115,7 +116,7 @@ class TestMemoization(unittest.TestCase):
             self.assertEqual(info.misses, 2)
             self.assertEqual(info.current_size, 2)
         for f in f1, f2:
-            keys = _make_key((10,), None), _make_key((20,), None)
+            keys = make_key((10,), None), make_key((20,), None)
             for key in keys:
                 self.assertIn(key, f._cache)
 
@@ -208,7 +209,7 @@ class TestMemoization(unittest.TestCase):
         self.assertEqual(info.misses, 21)
         self.assertEqual(info.current_size, 5)
 
-        keys = [_make_key((x,), None) for x in (99, 19, 18, 17, 16)]
+        keys = [make_key((x,), None) for x in (99, 19, 18, 17, 16)]
         for key in keys:
             self.assertIn(key, tested_function._cache)
 
@@ -230,10 +231,10 @@ class TestMemoization(unittest.TestCase):
         self.assertEqual(info.misses, misses)
         self.assertEqual(info.current_size, 5)
 
-        keys = [_make_key((x,), None) for x in in_cache]
+        keys = [make_key((x,), None) for x in in_cache]
         for key in keys:
             self.assertIn(key, tested_function._cache)
-        keys = [_make_key((x,), None) for x in chain(not_in_cache, range(0, 15))]
+        keys = [make_key((x,), None) for x in chain(not_in_cache, range(0, 15))]
         for key in keys:
             self.assertNotIn(key, tested_function._cache)
 
@@ -267,11 +268,11 @@ class TestMemoization(unittest.TestCase):
 
         self.assertGreaterEqual(exec_times[tested_function.__name__], 5)
         info = tested_function.cache_info()
-        self.assertEqual(info.hits, number_of_keys * number_of_threads - 5)
-        self.assertEqual(info.misses, 5)
+        self.assertLessEqual(info.hits, number_of_keys * number_of_threads - 5)
+        self.assertGreaterEqual(info.misses, 5)
         self.assertEqual(info.current_size, 5)
 
-        for key in [_make_key((x,), None) for x in range(5)]:
+        for key in [make_key((x,), None) for x in range(5)]:
             self.assertIn(key, tested_function._cache)
 
         # Test can-miss
@@ -339,7 +340,7 @@ class TestMemoization(unittest.TestCase):
         tested_function.cache_clear()
 
         arg = 1
-        key = _make_key((arg,), None)
+        key = make_key((arg,), None)
         tested_function(arg)
         time.sleep(0.25)  # wait for a short time
 
@@ -379,7 +380,7 @@ class TestMemoization(unittest.TestCase):
             exec_times[tested_function.__name__] = 0
             tested_function.cache_clear()
 
-            key = _make_key((arg,), None)
+            key = make_key((arg,), None)
             tested_function(arg)
             self.assertIn(key, tested_function._cache)
 
@@ -389,7 +390,7 @@ class TestMemoization(unittest.TestCase):
                 arg['foo'] = 'bar'
             else:
                 raise TypeError
-            key = _make_key((arg,), None)
+            key = make_key((arg,), None)
             tested_function(arg)
             self.assertIn(key, tested_function._cache)
 
@@ -399,7 +400,7 @@ class TestMemoization(unittest.TestCase):
                 del arg['foo']
             else:
                 raise TypeError
-            key = _make_key((arg,), None)
+            key = make_key((arg,), None)
             tested_function(arg)
             self.assertIn(key, tested_function._cache)
 

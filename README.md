@@ -2,7 +2,7 @@
 
 [![Version][aucsvg]][auc] [![Supports Python][pythonsvg]][python] [![Build Status][travismaster]][travis] [![PRs welcome][prsvg]][pr] [![Repository][repositorysvg]][repository] [![License][licensesvg]][license]
 
-[aucsvg]: https://img.shields.io/badge/memoization-v0.1.2_alpha-brightgreen.svg
+[aucsvg]: https://img.shields.io/badge/memoization-v0.1.3-brightgreen.svg
 [auc]: https://github.com/lonelyenvoy/python-memoization
 
 [pythonsvg]: https://img.shields.io/badge/Python-2.6,_2.7,_3.4,_3.5,_3.6,_3.7,_3.8-brightgreen.svg
@@ -174,7 +174,7 @@ With ```cache_info```, you can retrieve the number of ```hits``` and ```misses``
 
 This project welcomes contributions from anyone.
 - [Submit bugs](https://github.com/lonelyenvoy/python-memoization/issues) and help me verify fixes.
-- [Submit pull requests](https://github.com/lonelyenvoy/python-memoization/pulls) for bug fixes and features and discuss existing proposals. Please make sure that your PR passes the tests in ```memoization/test.py```.
+- [Submit pull requests](https://github.com/lonelyenvoy/python-memoization/pulls) for bug fixes and features and discuss existing proposals. Please make sure that your PR passes the tests in ```src/test.py```.
 
 ## License
 

@@ -7,7 +7,7 @@
 [aucsvg]: https://img.shields.io/badge/memoization-v0.1.3-brightgreen.svg
 [auc]: https://github.com/lonelyenvoy/python-memoization
 
-[pythonsvg]: https://img.shields.io/badge/Python-2.6|2.7|3.4|3.5|3.6|3.7|3.8-brightgreen.svg
+[pythonsvg]: https://img.shields.io/pypi/pyversions/memoization.svg
 [python]: https://www.python.org
 
 [travismaster]: https://travis-ci.org/lonelyenvoy/python-memoization.svg?branch=master

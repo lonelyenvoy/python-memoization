@@ -6,7 +6,7 @@ from threading import RLock
 
 # Public symbols
 __all__ = ['cached', 'CachingAlgorithmFlag', 'FIFO', 'LRU', 'LFU']
-__version__ = '0.1.3'
+__version__ = '0.1.4'
 
 
 class _Empty(object):

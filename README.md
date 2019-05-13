@@ -4,7 +4,7 @@
 [![Coverage Status][coverallssvg]][coveralls] [![Repository][repositorysvg]][repository] [![Downloads][downloadssvg]][repository]
 [![PRs welcome][prsvg]][pr] [![License][licensesvg]][license]
 
-[aucsvg]: https://img.shields.io/badge/memoization-v0.1.3-brightgreen.svg
+[aucsvg]: https://img.shields.io/badge/memoization-v0.1.4-brightgreen.svg
 [auc]: https://github.com/lonelyenvoy/python-memoization
 
 [pythonsvg]: https://img.shields.io/pypi/pyversions/memoization.svg

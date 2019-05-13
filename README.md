@@ -1,7 +1,7 @@
 # python-memoization
 
 [![Version][aucsvg]][auc] [![Supports Python][pythonsvg]][python] [![Build Status][travismaster]][travis]
-[![Coverage Status][coverallssvg]][coveralls] [![Repository][repositorysvg]][repository] [![Downloads][downloadssvg]][repository]
+[![Repository][repositorysvg]][repository] [![Downloads][downloadssvg]][repository]
 [![PRs welcome][prsvg]][pr] [![License][licensesvg]][license]
 
 [aucsvg]: https://img.shields.io/badge/memoization-v0.1.4-brightgreen.svg

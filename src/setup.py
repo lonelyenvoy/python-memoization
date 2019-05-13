@@ -11,4 +11,5 @@ setup(name='memoization',
       author_email='petrinchor@gmail.com',
       license='MIT',
       packages=find_packages(),
-      exclude_package_data={'': ['examples.py', 'test.py']})
+      exclude_package_data={'': ['examples.py', 'test.py']},
+      python_requires='>=2.6, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, <4')

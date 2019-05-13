@@ -1,21 +1,28 @@
 # python-memoization
 
-[![Version][aucsvg]][auc] [![Supports Python][pythonsvg]][python] [![Build Status][travismaster]][travis] [![PRs welcome][prsvg]][pr] [![Repository][repositorysvg]][repository] [![License][licensesvg]][license]
+[![Version][aucsvg]][auc] [![Supports Python][pythonsvg]][python] [![Build Status][travismaster]][travis]
+[![Coverage Status][coverallssvg]][coveralls] [![Repository][repositorysvg]][repository] [![Downloads][downloadssvg]][repository]
+[![PRs welcome][prsvg]][pr] [![License][licensesvg]][license]
 
 [aucsvg]: https://img.shields.io/badge/memoization-v0.1.3-brightgreen.svg
 [auc]: https://github.com/lonelyenvoy/python-memoization
 
-[pythonsvg]: https://img.shields.io/badge/Python-2.6,_2.7,_3.4,_3.5,_3.6,_3.7,_3.8-brightgreen.svg
+[pythonsvg]: https://img.shields.io/badge/Python-2.6|2.7|3.4|3.5|3.6|3.7|3.8-brightgreen.svg
 [python]: https://www.python.org
 
 [travismaster]: https://travis-ci.org/lonelyenvoy/python-memoization.svg?branch=master
 [travis]: https://travis-ci.org/lonelyenvoy/python-memoization
 
+[coverallssvg]: https://coveralls.io/repos/github/lonelyenvoy/python-memoization/badge.svg?branch=master
+[coveralls]: https://coveralls.io/github/lonelyenvoy/python-memoization?branch=master
+
+[repositorysvg]: https://img.shields.io/pypi/v/memoization.svg
+[repository]: https://pypi.org/project/memoization
+
+[downloadssvg]: https://img.shields.io/pypi/dm/memoization.svg
+
 [prsvg]: https://img.shields.io/badge/PRs-welcome-blue.svg
 [pr]: https://github.com/lonelyenvoy/python-memoization#contributing
-
-[repositorysvg]: https://img.shields.io/badge/PyPI-pending-blue.svg
-[repository]: https://pypi.org/project/memoization
 
 [licensesvg]: https://img.shields.io/badge/License-MIT-blue.svg
 [license]: https://github.com/lonelyenvoy/python-memoization/blob/master/LICENSE

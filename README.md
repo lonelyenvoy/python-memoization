@@ -85,6 +85,7 @@ TypeError: unhashable type: 'list'
 pip install memoization
 ```
 
+
 ## Usage in 2 lines
 
 ```python
@@ -177,11 +178,13 @@ With ```cache_info```, you can retrieve the number of ```hits``` and ```misses``
 - Access the original function ```f``` by ```f.__wrapped__```.
 - Clear the cache by ```f.cache_clear()```.
 
+
 ## Contributing
 
 This project welcomes contributions from anyone.
 - [Submit bugs](https://github.com/lonelyenvoy/python-memoization/issues) and help me verify fixes.
 - [Submit pull requests](https://github.com/lonelyenvoy/python-memoization/pulls) for bug fixes and features and discuss existing proposals. Please make sure that your PR passes the tests in ```test.py```.
+
 
 ## License
 

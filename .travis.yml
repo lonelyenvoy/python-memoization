@@ -14,6 +14,6 @@ install:
   - pip install coverage
   - pip install coveralls
 script:
-  - coverage run test/test.py
+  - coverage run test.py
 after_success:
   - coveralls

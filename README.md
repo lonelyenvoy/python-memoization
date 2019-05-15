@@ -29,6 +29,7 @@
 
 A powerful caching library for Python, with TTL support and multiple algorithm options.
 
+If you like this work, please [star](https://github.com/lonelyenvoy/python-memoization) it on GitHub.
 
 ## Why choose this library?
 

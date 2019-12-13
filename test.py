@@ -373,6 +373,19 @@ class TestMemoization(unittest.TestCase):
         self.assertIn(key, tested_function._cache)
         self.assertEqual(exec_times[tested_function.__name__], 2)
 
+        # The previous call should have been cached, so it must not call the function again
+        info = tested_function.cache_info()
+        self.assertEqual(info.current_size, 1)
+
+        tested_function(arg)  # this SHOULD NOT call the tested function
+
+        info = tested_function.cache_info()
+        self.assertEqual(info.hits, 2)
+        self.assertEqual(info.misses, 2)
+        self.assertEqual(info.current_size, 1)
+        self.assertIn(key, tested_function._cache)
+        self.assertEqual(exec_times[tested_function.__name__], 2)
+
     def _general_unhashable_arguments_test(self, tested_function):
         args = ([1, 2, 3], {'this': 'is unhashable'}, ['yet', ['another', ['complex', {'type, ': 'isn\'t it?'}]]])
         for arg in args:

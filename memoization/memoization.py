@@ -189,9 +189,7 @@ def _create_cached_wrapper(user_function, max_size, ttl, algorithm, thread_safe)
                     result = user_function(*args, **kwargs)
                     with lock:
                         if key in cache:
-                            # result added to the cache while the lock was released
-                            # no need to add again
-                            pass
+                            cache[key][3] = make_cache_value(result)
                         elif full:
                             # switch root to the oldest element in the cache
                             old_root = root
@@ -244,9 +242,7 @@ def _create_cached_wrapper(user_function, max_size, ttl, algorithm, thread_safe)
                     result = user_function(*args, **kwargs)
                     with lock:
                         if key in cache:
-                            # result added to the cache while the lock was released
-                            # no need to add again
-                            pass
+                            cache[key][3] = make_cache_value(result)
                         elif full:
                             # switch root to the oldest element in the cache
                             old_root = root
@@ -299,9 +295,7 @@ def _create_cached_wrapper(user_function, max_size, ttl, algorithm, thread_safe)
                 result = user_function(*args, **kwargs)
                 with lock:
                     if key in cache:
-                        # result added to the cache while the lock was released
-                        # no need to add again
-                        pass
+                        cache[key].value = make_cache_value(result)
                     else:
                         _insert_into_lfu_cache(cache, key, make_cache_value(result), lfu_freq_list_root, max_size)
                 return result

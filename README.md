@@ -80,7 +80,7 @@ TypeError: unhashable type: 'list'
 ```
 
 3. Unlike `lru_cache`, `memoization` is designed to be highly extensible, which make it easy for developers to add and integrate
-new caching algorithms (beyond FIFO, LRU and LFU) into this library. See [Contributing Guidance](https://github.com/lonelyenvoy/python-memoization/blob/master/CONTRIBUTING.md) for further detail.
+any caching algorithms (beyond FIFO, LRU and LFU) into this library. See [Contributing Guidance](https://github.com/lonelyenvoy/python-memoization/blob/master/CONTRIBUTING.md) for further detail.
 
 
 ## Installation

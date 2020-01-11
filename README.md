@@ -47,6 +47,7 @@ Well, actually not. This lib is based on ```functools```. Please find below the 
 |LRU (Least Recently Used) as caching algorithm|✔️|✔️|
 |LFU (Least Frequently Used) as caching algorithm|No support|✔️|
 |FIFO (First In First Out) as caching algorithm|No support|✔️|
+|Extensibility for new caching algorithms|No support|✔️|
 |TTL (Time-To-Live) support|No support|✔️|
 |Support for unhashable arguments (dict, list, etc.)|No support|✔️|
 |Partial cache clearing|No support|Pending implementation in v0.3.x|

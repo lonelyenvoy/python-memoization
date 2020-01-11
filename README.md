@@ -49,8 +49,8 @@ Well, actually not. This lib is based on ```functools```. Please find below the 
 |FIFO (First In First Out) as caching algorithm|No support|✔️|
 |TTL (Time-To-Live) support|No support|✔️|
 |Support for unhashable arguments (dict, list, etc.)|No support|✔️|
-|Partial cache clearing|No support|Pending implementation in v0.2.x|
-|Python version|3.2+|2.6, 2.7, 3.4+|
+|Partial cache clearing|No support|Pending implementation in v0.3.x|
+|Python version|3.2+|3.4+|
 
 ```memoization``` solves some drawbacks of ```functools.lru_cache```:
 
@@ -78,6 +78,9 @@ TypeError: unhashable type: 'list'
 >>> hash(3430019387558.0)  # two different arguments have an identical hash value
 3430019387558
 ```
+
+3. Unlike `lru_cache`, `memoization` is designed to be highly extensible, which make it easy for developers to add and integrate
+new caching algorithms (beyond FIFO, LRU and LFU) into this library. See [Contributing Guidance](https://github.com/lonelyenvoy/python-memoization/blob/master/CONTRIBUTING.md) for further detail.
 
 
 ## Installation
@@ -183,6 +186,7 @@ With ```cache_info```, you can retrieve the number of ```hits``` and ```misses``
 ## Contributing
 
 This project welcomes contributions from anyone.
+- [Read Contributing Guidance](https://github.com/lonelyenvoy/python-memoization/blob/master/CONTRIBUTING.md) first.
 - [Submit bugs](https://github.com/lonelyenvoy/python-memoization/issues) and help me verify fixes.
 - [Submit pull requests](https://github.com/lonelyenvoy/python-memoization/pulls) for bug fixes and features and discuss existing proposals. Please make sure that your PR passes the tests in ```test.py```.
 

@@ -1,11 +1,11 @@
 import unittest
-from itertools import chain
-from threading import Thread
 import random
-from threading import Lock
 import weakref
 import gc
 import time
+from itertools import chain
+from threading import Thread
+from threading import Lock
 
 from memoization import cached, CachingAlgorithmFlag
 from memoization.caching.general.keys import make_key
@@ -14,7 +14,7 @@ exec_times = {}                   # executed time of each tested function
 lock = Lock()                     # for multi-threading tests
 random.seed(100)                  # set seed to ensure that test results are reproducible
 
-for i in range(1, 12):
+for i in range(1, 16):
     exec_times['f' + str(i)] = 0  # init to zero
 
 
@@ -91,6 +91,30 @@ def f11(x):
     return x
 
 
+@cached(max_size=5, algorithm=CachingAlgorithmFlag.FIFO, thread_safe=False, ttl=0.5)
+def f12(arg, **kwargs):
+    exec_times['f12'] += 1
+    return [arg] + [(key, value) for (key, value) in kwargs.items()]
+
+
+@cached(max_size=5, algorithm=CachingAlgorithmFlag.LRU, thread_safe=False, ttl=0.5)
+def f13(arg, **kwargs):
+    exec_times['f13'] += 1
+    return [arg] + [(key, value) for (key, value) in kwargs.items()]
+
+
+@cached(max_size=5, algorithm=CachingAlgorithmFlag.LFU, thread_safe=False, ttl=0.5)
+def f14(arg, **kwargs):
+    exec_times['f14'] += 1
+    return [arg] + [(key, value) for (key, value) in kwargs.items()]
+
+
+@cached(max_size=0)
+def f15(x):
+    exec_times['f15'] += 1
+    return x
+
+
 ################################################################################
 # Test entry point
 ################################################################################
@@ -119,6 +143,11 @@ class TestMemoization(unittest.TestCase):
             keys = make_key((10,), None), make_key((20,), None)
             for key in keys:
                 self.assertIn(key, f._cache)
+
+        f1.cache_clear()
+        f2.cache_clear()
+        self._check_empty_cache_after_clearing(f1)
+        self._check_empty_cache_after_clearing(f2)
 
     def test_memoization_with_FIFO(self):
         self.assertTrue(hasattr(f3, '_fifo_root'))
@@ -174,6 +203,23 @@ class TestMemoization(unittest.TestCase):
         self._general_ttl_test(f11)
         self._check_lfu_cache_clearing(f11)
 
+    def test_memoization_with_FIFO_TTL_kwargs(self):
+        self.assertTrue(hasattr(f12, '_fifo_root'))
+        self._general_ttl_kwargs_test(f12)
+        f12.cache_clear()
+        self._check_empty_cache_after_clearing(f12)
+
+    def test_memoization_with_LRU_TTL_kwargs(self):
+        self.assertTrue(hasattr(f13, '_lru_root'))
+        self._general_ttl_kwargs_test(f13)
+        f13.cache_clear()
+        self._check_empty_cache_after_clearing(f13)
+
+    def test_memoization_with_LFU_TTL_kwargs(self):
+        self.assertTrue(hasattr(f14, '_lfu_root'))
+        self._general_ttl_kwargs_test(f14)
+        self._check_lfu_cache_clearing(f14)
+
     def test_memoization_for_unhashable_arguments_with_FIFO(self):
         self._general_unhashable_arguments_test(f3)
         f3.cache_clear()
@@ -187,6 +233,27 @@ class TestMemoization(unittest.TestCase):
     def test_memoization_for_unhashable_arguments_with_LFU(self):
         self._general_unhashable_arguments_test(f5)
         self._check_lfu_cache_clearing(f5)
+
+    def test_memoization_statistic_only(self):
+        f15(1)
+        f15(2)
+        f15(3)
+
+        self.assertEqual(exec_times['f15'], 3)
+
+        info = f15.cache_info()
+        self.assertEqual(info.max_size, 0)
+        self.assertIsNone(info.ttl)
+        self.assertTrue(info.thread_safe)
+        self.assertEqual(info.hits, 0)
+        self.assertEqual(info.misses, 3)
+        self.assertEqual(info.current_size, 0)
+
+        f15.cache_clear()
+        info = f15.cache_info()
+        self.assertEqual(info.hits, 0)
+        self.assertEqual(info.misses, 0)
+        self.assertEqual(info.current_size, 0)
 
     def _general_test(self, tested_function, algorithm, hits, misses, in_cache, not_in_cache):
         # clear
@@ -299,7 +366,6 @@ class TestMemoization(unittest.TestCase):
         self._general_test(tested_function=tested_function, algorithm=CachingAlgorithmFlag.FIFO, hits=7, misses=24,
                            in_cache=(16, 100, 15, 99, 19), not_in_cache=(18, 17))
         self.assertEqual(exec_times[tested_function.__name__], 24)
-
         caching_key_list = [item[0] for item in tested_function._get_caching_list()]
         self.assertEqual(caching_key_list, [[16], [100], [15], [99], [19]])
 
@@ -307,7 +373,6 @@ class TestMemoization(unittest.TestCase):
         self._general_test(tested_function=tested_function, algorithm=CachingAlgorithmFlag.LRU, hits=7, misses=24,
                            in_cache=(16, 100, 15, 19, 18), not_in_cache=(99, 17))
         self.assertEqual(exec_times[tested_function.__name__], 24)
-
         caching_key_list = [item[0] for item in tested_function._get_caching_list()]
         self.assertEqual(caching_key_list, [[16], [100], [15], [19], [18]])
 
@@ -315,7 +380,6 @@ class TestMemoization(unittest.TestCase):
         self._general_test(tested_function=tested_function, algorithm=CachingAlgorithmFlag.LFU, hits=8, misses=23,
                            in_cache=(18, 17, 16, 19, 100), not_in_cache=(99, 15))
         self.assertEqual(exec_times[tested_function.__name__], 23)
-
         caching_key_list = [item[0] for item in tested_function._get_caching_list()]
         self.assertEqual(caching_key_list, [[16], [18], [17], [19], [100]])
 
@@ -324,7 +388,6 @@ class TestMemoization(unittest.TestCase):
         self.assertEqual(info.hits, 0)
         self.assertEqual(info.misses, 0)
         self.assertEqual(info.current_size, 0)
-        self.assertEqual(info.max_size, 5)
 
         cache = tested_function._cache
         self.assertEqual(len(cache), 0)
@@ -342,14 +405,19 @@ class TestMemoization(unittest.TestCase):
         self.assertIsNone(root_next())
         self.assertIsNone(first_cache_head())
 
-    def _general_ttl_test(self, tested_function):
+    def _general_ttl_test(self, tested_function, arg=1, kwargs=None):
         # clear
         exec_times[tested_function.__name__] = 0
         tested_function.cache_clear()
 
-        arg = 1
-        key = make_key((arg,), None)
-        tested_function(arg)
+        def call_tested_function(arg, kwargs):
+            if kwargs is None:
+                tested_function(arg)
+            else:
+                tested_function(arg, **kwargs)
+
+        key = make_key((arg,), kwargs)
+        call_tested_function(arg, kwargs)
         time.sleep(0.25)  # wait for a short time
 
         info = tested_function.cache_info()
@@ -358,7 +426,7 @@ class TestMemoization(unittest.TestCase):
         self.assertEqual(info.current_size, 1)
         self.assertIn(key, tested_function._cache)
 
-        tested_function(arg)  # this WILL NOT call the tested function
+        call_tested_function(arg, kwargs)  # this WILL NOT call the tested function
 
         info = tested_function.cache_info()
         self.assertEqual(info.hits, 1)
@@ -372,7 +440,7 @@ class TestMemoization(unittest.TestCase):
         info = tested_function.cache_info()
         self.assertEqual(info.current_size, 1)
 
-        tested_function(arg)  # this WILL call the tested function
+        call_tested_function(arg, kwargs)  # this WILL call the tested function
 
         info = tested_function.cache_info()
         self.assertEqual(info.hits, 1)
@@ -382,7 +450,7 @@ class TestMemoization(unittest.TestCase):
         self.assertEqual(exec_times[tested_function.__name__], 2)
 
         # The previous call should have been cached, so it must not call the function again
-        tested_function(arg)  # this SHOULD NOT call the tested function
+        call_tested_function(arg, kwargs)  # this SHOULD NOT call the tested function
 
         info = tested_function.cache_info()
         self.assertEqual(info.hits, 2)
@@ -390,6 +458,9 @@ class TestMemoization(unittest.TestCase):
         self.assertEqual(info.current_size, 1)
         self.assertIn(key, tested_function._cache)
         self.assertEqual(exec_times[tested_function.__name__], 2)
+
+    def _general_ttl_kwargs_test(self, tested_function):
+        self._general_ttl_test(tested_function, arg=1, kwargs={"test": {"kwargs": [1, 0.5]}, "complex": True})
 
     def _general_unhashable_arguments_test(self, tested_function):
         args = ([1, 2, 3], {'this': 'is unhashable'}, ['yet', ['another', ['complex', {'type, ': 'isn\'t it?'}]]])

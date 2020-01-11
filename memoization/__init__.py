@@ -14,6 +14,6 @@ except NameError:
 else:
     cached = _memoization.cached
     CachingAlgorithmFlag = _memoization.CachingAlgorithmFlag
-    FIFO = _memoization.FIFO
-    LRU = _memoization.LRU
-    LFU = _memoization.LFU
+    FIFO = _memoization.CachingAlgorithmFlag.FIFO
+    LRU = _memoization.CachingAlgorithmFlag.LRU
+    LFU = _memoization.CachingAlgorithmFlag.LFU

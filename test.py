@@ -300,15 +300,24 @@ class TestMemoization(unittest.TestCase):
                            in_cache=(16, 100, 15, 99, 19), not_in_cache=(18, 17))
         self.assertEqual(exec_times[tested_function.__name__], 24)
 
+        caching_key_list = [item[0] for item in tested_function._get_caching_list()]
+        self.assertEqual(caching_key_list, [[16], [100], [15], [99], [19]])
+
     def _lru_test(self, tested_function):
         self._general_test(tested_function=tested_function, algorithm=CachingAlgorithmFlag.LRU, hits=7, misses=24,
                            in_cache=(16, 100, 15, 19, 18), not_in_cache=(99, 17))
         self.assertEqual(exec_times[tested_function.__name__], 24)
 
+        caching_key_list = [item[0] for item in tested_function._get_caching_list()]
+        self.assertEqual(caching_key_list, [[16], [100], [15], [19], [18]])
+
     def _lfu_test(self, tested_function):
         self._general_test(tested_function=tested_function, algorithm=CachingAlgorithmFlag.LFU, hits=8, misses=23,
                            in_cache=(18, 17, 16, 19, 100), not_in_cache=(99, 15))
         self.assertEqual(exec_times[tested_function.__name__], 23)
+
+        caching_key_list = [item[0] for item in tested_function._get_caching_list()]
+        self.assertEqual(caching_key_list, [[16], [18], [17], [19], [100]])
 
     def _check_empty_cache_after_clearing(self, tested_function):
         info = tested_function.cache_info()

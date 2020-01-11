@@ -21,7 +21,10 @@ def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe):
         values_toolkit = values_toolkit_without_ttl
     lfu_freq_list_root = _FreqNode.root()               # LFU frequency list root
 
-    def wrapper(*args, **kwargs):  # the actual wrapper
+    def wrapper(*args, **kwargs):
+        """
+        The actual wrapper
+        """
         nonlocal hits, misses
         key = make_key(args, kwargs)
         cache_expired = False
@@ -49,18 +52,28 @@ def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe):
                                        lfu_freq_list_root, max_size)
         return result
 
-    def cache_clear():  # clear the cache and statistics information
+    def cache_clear():
+        """
+        Clear the cache and its statistics information
+        """
         nonlocal hits, misses, lfu_freq_list_root
         with lock:
             cache.clear()
             hits = misses = 0
             lfu_freq_list_root.prev = lfu_freq_list_root.next = lfu_freq_list_root
 
-    def cache_info():  # show statistics information
+    def cache_info():
+        """
+        Show statistics information
+        :return: a CacheInfo object describing the cache
+        """
         with lock:
             return CacheInfo(hits, misses, cache.__len__(), max_size, algorithm, ttl, thread_safe)
 
     def get_caching_list():
+        """
+        Get a list containing all (key, value) in the cache in an order determined by the algorithm - LFU
+        """
         result = []
         freq_node = lfu_freq_list_root.prev
         while freq_node != lfu_freq_list_root:
@@ -71,7 +84,7 @@ def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe):
             freq_node = freq_node.prev
         return result
 
-    # expose operations and members of wrapper
+    # expose operations to wrapper
     wrapper.cache_clear = cache_clear
     wrapper.cache_info = cache_info
     wrapper._cache = cache

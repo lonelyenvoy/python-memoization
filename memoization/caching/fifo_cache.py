@@ -29,7 +29,10 @@ def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe):
     _KEY = 2                                            # index for the key
     _VALUE = 3                                          # index for the value
 
-    def wrapper(*args, **kwargs):  # the actual wrapper
+    def wrapper(*args, **kwargs):
+        """
+        The actual wrapper
+        """
         nonlocal hits, misses, root, full
         key = make_key(args, kwargs)
         cache_expired = False
@@ -77,7 +80,10 @@ def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe):
                 full = (cache.__len__() >= max_size)
         return result
 
-    def cache_clear():  # clear the cache and statistics information
+    def cache_clear():
+        """
+        Clear the cache and its statistics information
+        """
         nonlocal hits, misses, full
         with lock:
             cache.clear()
@@ -85,11 +91,18 @@ def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe):
             full = False
             root[:] = [root, root, None, None]
 
-    def cache_info():  # show statistics information
+    def cache_info():
+        """
+        Show statistics information
+        :return: a CacheInfo object describing the cache
+        """
         with lock:
             return CacheInfo(hits, misses, cache.__len__(), max_size, algorithm, ttl, thread_safe)
 
     def get_caching_list():
+        """
+        Get a list containing all (key, value) in the cache in an order determined by the algorithm - FIFO
+        """
         node = root[_PREV]
         result = []
         while node is not root:
@@ -97,7 +110,7 @@ def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe):
             node = node[_PREV]
         return result
 
-    # expose operations and members of wrapper
+    # expose operations to wrapper
     wrapper.cache_clear = cache_clear
     wrapper.cache_info = cache_info
     wrapper._cache = cache

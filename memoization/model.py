@@ -7,6 +7,11 @@ __all__ = ['DummyWithable', 'HashedList', 'CacheInfo']
 class DummyWithable(object):
     """
     This class is used to create instances that can bypass "with" statements
+
+    e.g.
+    lock = DummyWithable()
+    with lock:
+        manipulate_data()
     """
 
     __slots__ = ()

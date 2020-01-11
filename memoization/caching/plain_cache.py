@@ -20,7 +20,10 @@ def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe):
     else:
         values_toolkit = values_toolkit_without_ttl
 
-    def wrapper(*args, **kwargs):  # the actual wrapper
+    def wrapper(*args, **kwargs):
+        """
+        The actual wrapper
+        """
         nonlocal hits, misses
         key = make_key(args, kwargs)
         value = cache.get(key, sentinel)
@@ -35,13 +38,20 @@ def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe):
             cache[key] = values_toolkit.make_cache_value(result, ttl)
             return result
 
-    def cache_clear():  # clear the cache and statistics information
+    def cache_clear():
+        """
+        Clear the cache and statistics information
+        """
         nonlocal hits, misses
         with lock:
             cache.clear()
             hits = misses = 0
 
-    def cache_info():  # show statistics information
+    def cache_info():
+        """
+        Show statistics information
+        :return: a CacheInfo object describing the cache
+        """
         with lock:
             return CacheInfo(hits, misses, cache.__len__(), max_size, algorithm, ttl, thread_safe)
 

@@ -189,6 +189,7 @@ This project welcomes contributions from anyone.
 - [Read Contributing Guidance](https://github.com/lonelyenvoy/python-memoization/blob/master/CONTRIBUTING.md) first.
 - [Submit bugs](https://github.com/lonelyenvoy/python-memoization/issues) and help me verify fixes.
 - [Submit pull requests](https://github.com/lonelyenvoy/python-memoization/pulls) for bug fixes and features and discuss existing proposals. Please make sure that your PR passes the tests in ```test.py```.
+- [See contributors](https://github.com/lonelyenvoy/python-memoization/blob/master/CONTRIBUTORS.md) of this project.
 
 
 ## License

@@ -1,6 +1,7 @@
 # Contributing
 
-Thank you for your contribution to this project. If your solution works well, I will merge your pull requests ASAP.
+Thank you for your contribution to this project. If your solution works well, I will merge your pull requests ASAP. 
+**Feel free to add yourself to `CONTRIBUTORS.md` :-D**
 
 ## Bugs...
 

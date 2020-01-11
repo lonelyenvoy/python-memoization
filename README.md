@@ -16,10 +16,10 @@
 [coverallssvg]: https://coveralls.io/repos/github/lonelyenvoy/python-memoization/badge.svg?branch=master
 [coveralls]: https://coveralls.io/github/lonelyenvoy/python-memoization?branch=master
 
-[repositorysvg]: https://img.shields.io/pypi/v/memoization.svg
+[repositorysvg]: https://img.shields.io/pypi/v/memoization
 [repository]: https://pypi.org/project/memoization
 
-[downloadssvg]: https://img.shields.io/pypi/dm/memoization.svg
+[downloadssvg]: https://img.shields.io/pypi/dm/memoization
 
 [prsvg]: https://img.shields.io/badge/PRs-welcome-blue.svg
 [pr]: https://github.com/lonelyenvoy/python-memoization#contributing

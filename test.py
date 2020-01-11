@@ -1,5 +1,4 @@
 import unittest
-from memoization import cached, CachingAlgorithmFlag, _memoization
 from itertools import chain
 from threading import Thread
 import random
@@ -8,11 +7,12 @@ import weakref
 import gc
 import time
 
+from memoization import cached, CachingAlgorithmFlag
+from memoization.caching.general.keys import make_key
 
-make_key = _memoization._make_key   # bind make_key function
-exec_times = {}                     # executed time of each tested function
-lock = Lock()                       # for multi-threading tests
-random.seed(100)                    # set seed to ensure that test results are reproducible
+exec_times = {}                   # executed time of each tested function
+lock = Lock()                     # for multi-threading tests
+random.seed(100)                  # set seed to ensure that test results are reproducible
 
 for i in range(1, 12):
     exec_times['f' + str(i)] = 0  # init to zero
@@ -187,7 +187,6 @@ class TestMemoization(unittest.TestCase):
     def test_memoization_for_unhashable_arguments_with_LFU(self):
         self._general_unhashable_arguments_test(f5)
         self._check_lfu_cache_clearing(f5)
-
 
     def _general_test(self, tested_function, algorithm, hits, misses, in_cache, not_in_cache):
         # clear
@@ -374,9 +373,6 @@ class TestMemoization(unittest.TestCase):
         self.assertEqual(exec_times[tested_function.__name__], 2)
 
         # The previous call should have been cached, so it must not call the function again
-        info = tested_function.cache_info()
-        self.assertEqual(info.current_size, 1)
-
         tested_function(arg)  # this SHOULD NOT call the tested function
 
         info = tested_function.cache_info()

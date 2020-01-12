@@ -1,31 +1,10 @@
 # python-memoization
 
-[![Version][aucsvg]][auc] [![Supports Python][pythonsvg]][python] [![Build Status][travismaster]][travis]
-[![Coverage Status][coverallssvg]][coveralls] [![Repository][repositorysvg]][repository] [![Downloads][downloadssvg]][repository]
-[![PRs welcome][prsvg]][pr] [![License][licensesvg]][license]
+[![Repository][repositorysvg]][repository] [![Build Status][travismaster]][travis] [![Codacy Badge][codacysvg]][codacy]
+[![Coverage Status][coverallssvg]][coveralls] [![Downloads][downloadssvg]][repository]
+<br>
+[![PRs welcome][prsvg]][pr] [![License][licensesvg]][license] [![Supports Python][pythonsvg]][python]
 
-[aucsvg]: https://img.shields.io/badge/memoization-v0.2.2-brightgreen.svg
-[auc]: https://github.com/lonelyenvoy/python-memoization
-
-[pythonsvg]: https://img.shields.io/pypi/pyversions/memoization.svg
-[python]: https://www.python.org
-
-[travismaster]: https://travis-ci.org/lonelyenvoy/python-memoization.svg?branch=master
-[travis]: https://travis-ci.org/lonelyenvoy/python-memoization
-
-[coverallssvg]: https://coveralls.io/repos/github/lonelyenvoy/python-memoization/badge.svg?branch=master
-[coveralls]: https://coveralls.io/github/lonelyenvoy/python-memoization?branch=master
-
-[repositorysvg]: https://img.shields.io/pypi/v/memoization
-[repository]: https://pypi.org/project/memoization
-
-[downloadssvg]: https://img.shields.io/pypi/dm/memoization
-
-[prsvg]: https://img.shields.io/badge/PRs-welcome-blue.svg
-[pr]: https://github.com/lonelyenvoy/python-memoization#contributing
-
-[licensesvg]: https://img.shields.io/badge/License-MIT-blue.svg
-[license]: https://github.com/lonelyenvoy/python-memoization/blob/master/LICENSE
 
 A powerful caching library for Python, with TTL support and multiple algorithm options.
 
@@ -196,3 +175,27 @@ This project welcomes contributions from anyone.
 ## License
 
 [The MIT License](https://github.com/lonelyenvoy/python-memoization/blob/master/LICENSE)
+
+
+[pythonsvg]: https://img.shields.io/pypi/pyversions/memoization.svg
+[python]: https://www.python.org
+
+[travismaster]: https://travis-ci.org/lonelyenvoy/python-memoization.svg?branch=master
+[travis]: https://travis-ci.org/lonelyenvoy/python-memoization
+
+[coverallssvg]: https://coveralls.io/repos/github/lonelyenvoy/python-memoization/badge.svg?branch=master
+[coveralls]: https://coveralls.io/github/lonelyenvoy/python-memoization?branch=master
+
+[repositorysvg]: https://img.shields.io/pypi/v/memoization
+[repository]: https://pypi.org/project/memoization
+
+[downloadssvg]: https://img.shields.io/pypi/dm/memoization
+
+[prsvg]: https://img.shields.io/badge/pull_requests-welcome-blue.svg
+[pr]: https://github.com/lonelyenvoy/python-memoization#contributing
+
+[licensesvg]: https://img.shields.io/badge/license-MIT-blue.svg
+[license]: https://github.com/lonelyenvoy/python-memoization/blob/master/LICENSE
+
+[codacysvg]: https://api.codacy.com/project/badge/Grade/52c68fb9de6b4b149e77e8e173616db6
+[codacy]: https://www.codacy.com/manual/petrinchor/python-memoization?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=lonelyenvoy/python-memoization&amp;utm_campaign=Badge_Grade

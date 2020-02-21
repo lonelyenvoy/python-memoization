@@ -8,8 +8,8 @@ def make_key(args, kwargs, kwargs_mark=(object(), )):
     key = args
     if kwargs:
         key += kwargs_mark
-        for item in kwargs.items():
-            key += item
+        for kwarg_key in sorted(kwargs.keys()):
+            key += (kwarg_key, kwargs[kwarg_key])
     try:
         hash_value = hash(key)
     except TypeError:  # process unhashable types

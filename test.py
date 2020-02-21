@@ -14,7 +14,7 @@ exec_times = {}                   # executed time of each tested function
 lock = Lock()                     # for multi-threading tests
 random.seed(100)                  # set seed to ensure that test results are reproducible
 
-for i in range(1, 16):
+for i in range(1, 17):
     exec_times['f' + str(i)] = 0  # init to zero
 
 
@@ -113,6 +113,12 @@ def f14(arg, **kwargs):
 def f15(x):
     exec_times['f15'] += 1
     return x
+
+
+@cached()
+def f16(*args, **kwargs):
+    exec_times['f16'] += 1
+    return list(args) + [(key, value) for (key, value) in kwargs.items()]
 
 
 ################################################################################
@@ -254,6 +260,39 @@ class TestMemoization(unittest.TestCase):
         self.assertEqual(info.hits, 0)
         self.assertEqual(info.misses, 0)
         self.assertEqual(info.current_size, 0)
+
+    def test_memoization_for_diffrent_order_of_kwargs(self):
+        f16(
+            1,
+            2,
+            kwarg1={"some": "dict"},
+            kwarg2=["it's", "a", "list"],
+            kwarg3="just_string",
+            kwarg4=4,
+        )
+        f16(
+            1,
+            2,
+            kwarg2=["it's", "a", "list"],
+            kwarg1={"some": "dict"},
+            kwarg4=4,
+            kwarg3="just_string",
+        )
+        f16(
+            1,
+            2,
+            kwarg3="just_string",
+            kwarg1={"some": "dict"},
+            kwarg4=4,
+            kwarg2=["it's", "a", "list"],
+        )
+
+        self.assertEqual(exec_times['f16'], 1)
+
+        info = f16.cache_info()
+        self.assertEqual(info.hits, 2)
+        self.assertEqual(info.misses, 1)
+        self.assertEqual(info.current_size, 1)
 
     def _general_test(self, tested_function, algorithm, hits, misses, in_cache, not_in_cache):
         # clear

@@ -1,33 +1,38 @@
 from threading import RLock
 
 from memoization.model import DummyWithable, CacheInfo
-from memoization.caching.general.keys import make_key
+import memoization.caching.general.keys_order_dependent as keys_toolkit_order_dependent
+import memoization.caching.general.keys_order_independent as keys_toolkit_order_independent
 import memoization.caching.general.values_with_ttl as values_toolkit_with_ttl
 import memoization.caching.general.values_without_ttl as values_toolkit_without_ttl
 
 
-def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe):
+def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe, order_independent):
     """
     Get a caching wrapper for LRU cache
     """
 
-    cache = {}                                          # the cache to store function results
-    sentinel = object()                                 # sentinel object for the default value of map.get
-    hits = misses = 0                                   # hits and misses of the cache
-    lock = RLock() if thread_safe else DummyWithable()  # ensure thread-safe
-    if ttl is not None:                                 # setup values toolkit according to ttl
+    cache = {}                                              # the cache to store function results
+    sentinel = object()                                     # sentinel object for the default value of map.get
+    hits = misses = 0                                       # hits and misses of the cache
+    lock = RLock() if thread_safe else DummyWithable()      # ensure thread-safe
+    if ttl is not None:                                     # set up values toolkit according to ttl
         values_toolkit = values_toolkit_with_ttl
     else:
         values_toolkit = values_toolkit_without_ttl
+    if order_independent:                                   # set up keys toolkit according to order_independent
+        make_key = keys_toolkit_order_independent.make_key
+    else:
+        make_key = keys_toolkit_order_dependent.make_key
 
     # for LRU list
-    full = False                                        # whether the cache is full or not
-    root = []                                           # linked list
-    root[:] = [root, root, None, None]                  # initialize by pointing to self
-    _PREV = 0                                           # index for the previous node
-    _NEXT = 1                                           # index for the next node
-    _KEY = 2                                            # index for the key
-    _VALUE = 3                                          # index for the value
+    full = False                                            # whether the cache is full or not
+    root = []                                               # linked list
+    root[:] = [root, root, None, None]                      # initialize by pointing to self
+    _PREV = 0                                               # index for the previous node
+    _NEXT = 1                                               # index for the next node
+    _KEY = 2                                                # index for the key
+    _VALUE = 3                                              # index for the value
 
     def wrapper(*args, **kwargs):
         """
@@ -106,7 +111,7 @@ def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe):
         :return: a CacheInfo object describing the cache
         """
         with lock:
-            return CacheInfo(hits, misses, cache.__len__(), max_size, algorithm, ttl, thread_safe)
+            return CacheInfo(hits, misses, cache.__len__(), max_size, algorithm, ttl, thread_safe, order_independent)
 
     def get_caching_list():
         """

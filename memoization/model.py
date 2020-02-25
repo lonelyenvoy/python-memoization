@@ -39,5 +39,6 @@ class HashedList(list):
 
 
 # Named type CacheInfo
-CacheInfo = namedtuple('CacheInfo', ['hits', 'misses', 'current_size', 'max_size', 'algorithm', 'ttl', 'thread_safe'])
+CacheInfo = namedtuple('CacheInfo', ['hits', 'misses', 'current_size', 'max_size',
+                                     'algorithm', 'ttl', 'thread_safe', 'order_independent'])
 

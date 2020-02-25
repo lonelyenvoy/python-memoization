@@ -17,28 +17,41 @@ __version__ = '0.2.2'
 globals().update(CachingAlgorithmFlag.__members__)
 
 
-def cached(user_function=None, max_size=None, ttl=None, algorithm=CachingAlgorithmFlag.LRU, thread_safe=True):
+def cached(user_function=None, max_size=None, ttl=None,
+           algorithm=CachingAlgorithmFlag.LRU, thread_safe=True, order_independent=False):
     """
     @cached decorator wrapper
-    :param user_function: The decorated function, to be cached
-    :param max_size: The max number of items can be held in the cache
-    :param ttl: Time-To-Live
-                Defining how long the cached data is valid (in seconds)
-                If not given, the data in cache is valid forever.
-                Valid only when max_size > 0
-    :param algorithm: The algorithm used when caching
-                      Default: LRU (Least Recently Used)
-                      Valid only when max_size > 0
-                      Refer to CachingAlgorithmFlag for possible choices.
-    :param thread_safe: Whether the cache is thread safe
-                        Setting it to False enhances performance.
+
+    :param user_function:       The decorated function, to be cached
+    :param max_size:            The max number of items can be held in the cache
+    :param ttl:                 Time-To-Live
+                                Defining how long the cached data is valid (in seconds)
+                                If not given, the data in cache is valid forever.
+                                Valid only when max_size > 0 or max_size is None
+    :param algorithm:           The algorithm used when caching
+                                Default: LRU (Least Recently Used)
+                                Valid only when max_size > 0
+                                Refer to CachingAlgorithmFlag for possible choices.
+    :param thread_safe:         Whether the cache is thread safe
+                                Setting it to False enhances performance.
+    :param order_independent:   Whether the cache is kwarg-order-independent.
+                                For the following code snippet:
+                                    f(a=1, b=1)
+                                    f(b=1, a=1)
+                                If True, f(a=1, b=1) will be treated the same as
+                                f(b=1, a=1) and the cache will be hit once.
+                                If False, they will be treated as different calls
+                                and the cache will miss.
+                                Setting it to True adds performance overhead.
+                                Valid only when max_size > 0 or max_size is None
     :return: decorator function
     """
 
     # Adapt to the usage of calling the decorator and that of not calling it
     # i.e. @cached and @cached()
     if user_function is None:
-        return partial(cached, max_size=max_size, ttl=ttl, algorithm=algorithm, thread_safe=thread_safe)
+        return partial(cached, max_size=max_size, ttl=ttl, algorithm=algorithm,
+                       thread_safe=thread_safe, order_independent=order_independent)
 
     # Perform type checking
     if not hasattr(user_function, '__call__'):
@@ -57,6 +70,8 @@ def cached(user_function=None, max_size=None, ttl=None, algorithm=CachingAlgorit
         raise TypeError('Expected algorithm to be an instance of CachingAlgorithmFlag')
     if not isinstance(thread_safe, bool):
         raise TypeError('Expected thread_safe to be a boolean value')
+    if not isinstance(order_independent, bool):
+        raise TypeError('Expected order_independent to be a boolean value')
 
     # Warn on zero-argument functions
     user_function_info = inspect.getfullargspec(user_function)
@@ -65,21 +80,21 @@ def cached(user_function=None, max_size=None, ttl=None, algorithm=CachingAlgorit
         warnings.warn('It makes no sense to do memoization on a function without arguments', SyntaxWarning)
 
     # Create wrapper
-    wrapper = _create_cached_wrapper(user_function, max_size, ttl, algorithm, thread_safe)
+    wrapper = _create_cached_wrapper(user_function, max_size, ttl, algorithm, thread_safe, order_independent)
     return update_wrapper(wrapper, user_function)  # update wrapper to make it look like the original function
 
 
-def _create_cached_wrapper(user_function, max_size, ttl, algorithm, thread_safe):
+def _create_cached_wrapper(user_function, max_size, ttl, algorithm, thread_safe, order_independent):
     """
     Factory that creates an actual executed function when a function is decorated with @cached
     """
     if max_size == 0:
-        return statistic_cache.get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe)
+        return statistic_cache.get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe, order_independent)
     elif max_size is None:
-        return plain_cache.get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe)
+        return plain_cache.get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe, order_independent)
     else:
         cache_toolkit = get_cache_toolkit(algorithm)
-        return cache_toolkit.get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe)
+        return cache_toolkit.get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe, order_independent)
 
 
 if __name__ == '__main__':

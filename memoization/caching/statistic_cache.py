@@ -3,7 +3,7 @@ from threading import RLock
 from memoization.model import DummyWithable, CacheInfo
 
 
-def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe):
+def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe, order_independent):
     """
     Get a caching wrapper for statistics only, without any actual caching
     """
@@ -34,7 +34,7 @@ def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe):
         :return: a CacheInfo object describing the cache
         """
         with lock:
-            return CacheInfo(0, misses, 0, max_size, algorithm, ttl, thread_safe)
+            return CacheInfo(0, misses, 0, max_size, algorithm, ttl, thread_safe, order_independent)
 
     # expose operations and members of wrapper
     wrapper.cache_clear = cache_clear

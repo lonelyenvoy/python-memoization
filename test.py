@@ -8,7 +8,7 @@ from threading import Thread
 from threading import Lock
 
 from memoization import cached, CachingAlgorithmFlag
-from memoization.caching.general.keys import make_key
+from memoization.caching.general.keys_order_dependent import make_key
 
 exec_times = {}                   # executed time of each tested function
 lock = Lock()                     # for multi-threading tests
@@ -115,7 +115,7 @@ def f15(x):
     return x
 
 
-@cached()
+@cached(order_independent=True)
 def f16(*args, **kwargs):
     exec_times['f16'] += 1
     return list(args) + [(key, value) for (key, value) in kwargs.items()]
@@ -261,7 +261,7 @@ class TestMemoization(unittest.TestCase):
         self.assertEqual(info.misses, 0)
         self.assertEqual(info.current_size, 0)
 
-    def test_memoization_for_diffrent_order_of_kwargs(self):
+    def test_memoization_for_different_order_of_kwargs(self):
         f16(
             1,
             2,

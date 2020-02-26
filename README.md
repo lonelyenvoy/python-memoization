@@ -137,6 +137,24 @@ def func(arg):
 
 ```thread_safe``` is ```True``` by default. Setting it to ```False``` enhances performance.
 
+### Order-independent cache key
+
+By default, the following function calls will be treated differently and cached twice, which means the cache misses at the second call.
+
+```python
+func(a=1, b=1)
+func(b=1, a=1)
+```
+
+You can avoid this behavior by passing an `order_independent` argument to the decorator, although it will slow down the performance a little bit. 
+
+```python
+@cached(order_independent=True)
+def func(**kwargs):
+    ...
+```
+
+
 ### Knowing how well the cache is behaving
 
 ```python

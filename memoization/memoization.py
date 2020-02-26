@@ -10,7 +10,7 @@ from memoization.config.algorithm_mapping import get_cache_toolkit
 
 # Public symbols
 __all__ = ['cached', 'CachingAlgorithmFlag']
-__version__ = '0.2.2'
+__version__ = '0.2.3'
 
 
 # Insert the algorithm flags to the global namespace for convenience

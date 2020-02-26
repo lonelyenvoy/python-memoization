@@ -162,7 +162,7 @@ def func(**kwargs):
 ... def f(x): return x
 ... 
 >>> f.cache_info()
-CacheInfo(hits=0, misses=0, current_size=0, max_size=None, algorithm=<CachingAlgorithmFlag.LRU: 2>, ttl=None, thread_safe=True)
+CacheInfo(hits=0, misses=0, current_size=0, max_size=None, algorithm=<CachingAlgorithmFlag.LRU: 2>, ttl=None, thread_safe=True, order_independent=False)
 ```
 
 With ```cache_info```, you can retrieve the number of ```hits``` and ```misses``` of the cache, and other information indicating the caching status.
@@ -174,6 +174,7 @@ With ```cache_info```, you can retrieve the number of ```hits``` and ```misses``
 - `algorithm`: caching algorithm (user-specified)
 - `ttl`: Time-To-Live value (user-specified)
 - `thread_safe`: whether the cache is thread safe (user-specified)
+- `order_independent`: whether the cache is kwarg-order-independent (user-specified)
 
 ### Other APIs
 

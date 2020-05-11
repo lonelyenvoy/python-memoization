@@ -88,7 +88,7 @@ Repetitive calls to ```func()``` with the same arguments run ```func()``` only o
 
 >:warning:__WARNING:__ for functions with unhashable arguments, the default setting may not enable `memoization` to work properly. See [custom cache keys](https://github.com/lonelyenvoy/python-memoization#custom-cache-keys) section below for details.
 
-## 10-Minute Tutorial
+## 15-Minute Tutorial
 
 You will learn about the advanced features in the following tutorial, which enable you to customize `memoization` .
 

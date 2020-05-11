@@ -1,11 +1,12 @@
 from setuptools import setup, find_packages
+from memoization.memoization import __version__ as memoization_version
 
 with open('README.md', 'r') as f:
     long_description = f.read()
 
 setup(
     name='memoization',
-    version='0.2.3',
+    version=memoization_version,
     description='A powerful caching library for Python, with TTL support and multiple algorithm options. '
                 '(https://github.com/lonelyenvoy/python-memoization)',
     long_description=long_description,

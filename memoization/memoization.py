@@ -10,7 +10,7 @@ from memoization.config.algorithm_mapping import get_cache_toolkit
 
 # Public symbols
 __all__ = ['cached', 'CachingAlgorithmFlag']
-__version__ = '0.2.3'
+__version__ = '0.3.0'
 
 
 # Insert the algorithm flags to the global namespace for convenience
@@ -18,32 +18,52 @@ globals().update(CachingAlgorithmFlag.__members__)
 
 
 def cached(user_function=None, max_size=None, ttl=None,
-           algorithm=CachingAlgorithmFlag.LRU, thread_safe=True, order_independent=False):
+           algorithm=CachingAlgorithmFlag.LRU, thread_safe=True, order_independent=False, custom_key_maker=None):
     """
     @cached decorator wrapper
 
-    :param user_function:       The decorated function, to be cached
-    :param max_size:            The max number of items can be held in the cache
-    :param ttl:                 Time-To-Live
+    :param user_function:       The decorated function, to be cached.
+
+    :param max_size:            The max number of items can be held in the cache.
+
+    :param ttl:                 Time-To-Live.
                                 Defining how long the cached data is valid (in seconds)
                                 If not given, the data in cache is valid forever.
                                 Valid only when max_size > 0 or max_size is None
-    :param algorithm:           The algorithm used when caching
+
+    :param algorithm:           The algorithm used when caching.
                                 Default: LRU (Least Recently Used)
                                 Valid only when max_size > 0
                                 Refer to CachingAlgorithmFlag for possible choices.
-    :param thread_safe:         Whether the cache is thread safe
+
+    :param thread_safe:         Whether the cache is thread safe.
                                 Setting it to False enhances performance.
+
     :param order_independent:   Whether the cache is kwarg-order-independent.
                                 For the following code snippet:
                                     f(a=1, b=1)
                                     f(b=1, a=1)
-                                If True, f(a=1, b=1) will be treated the same as
-                                f(b=1, a=1) and the cache will be hit once.
-                                If False, they will be treated as different calls
-                                and the cache will miss.
-                                Setting it to True adds performance overhead.
+                                - If True, f(a=1, b=1) will be treated the same as f(b=1, a=1) and the cache
+                                  will be hit once.
+                                - If False, they will be treated as different calls and the cache will miss.
+                                  Setting it to True adds performance overhead.
+                                Valid only when (max_size > 0 or max_size is None) and custom_key_maker is None
+
+    :param custom_key_maker:    Use this parameter to override the default cache key maker.
+                                It should be a function with the same signature as user_function.
+                                - The produced key must be unique, which means two sets of different arguments
+                                  always map to two different keys.
+                                - The produced key must be hashable and comparable with another key (the
+                                  memoization library only needs to check for their equality).
+                                - Key computation should be efficient, and keys should be small objects.
                                 Valid only when max_size > 0 or max_size is None
+                                e.g.
+                                def get_employee_id(employee):
+                                    return employee.id
+                                @cached(custom_key_maker=get_employee_id)
+                                def calculate_performance(employee):
+                                    ...
+
     :return: decorator function
     """
 
@@ -51,7 +71,7 @@ def cached(user_function=None, max_size=None, ttl=None,
     # i.e. @cached and @cached()
     if user_function is None:
         return partial(cached, max_size=max_size, ttl=ttl, algorithm=algorithm,
-                       thread_safe=thread_safe, order_independent=order_independent)
+                       thread_safe=thread_safe, order_independent=order_independent, custom_key_maker=custom_key_maker)
 
     # Perform type checking
     if not hasattr(user_function, '__call__'):
@@ -72,6 +92,8 @@ def cached(user_function=None, max_size=None, ttl=None,
         raise TypeError('Expected thread_safe to be a boolean value')
     if not isinstance(order_independent, bool):
         raise TypeError('Expected order_independent to be a boolean value')
+    if custom_key_maker is not None and not hasattr(custom_key_maker, '__call__'):
+        raise TypeError('Expected custom_key_maker to be callable or None')
 
     # Warn on zero-argument functions
     user_function_info = inspect.getfullargspec(user_function)
@@ -79,22 +101,42 @@ def cached(user_function=None, max_size=None, ttl=None,
             and max_size is None and ttl is None:
         warnings.warn('It makes no sense to do memoization on a function without arguments', SyntaxWarning)
 
+    # Check custom key maker and wrap it
+    if custom_key_maker is not None:
+        custom_key_maker_info = inspect.getfullargspec(custom_key_maker)
+        if custom_key_maker_info.args != user_function_info.args or \
+                custom_key_maker_info.varargs != user_function_info.varargs or \
+                custom_key_maker_info.varkw != user_function_info.varkw or \
+                custom_key_maker_info.kwonlyargs != user_function_info.kwonlyargs or \
+                custom_key_maker_info.defaults != user_function_info.defaults or \
+                custom_key_maker_info.kwonlydefaults != user_function_info.kwonlydefaults:
+            raise TypeError('Expected custom_key_maker to have the same signature as the function being cached')
+
+        def custom_key_maker_wrapper(args, kwargs):
+            return custom_key_maker(*args, **kwargs)
+    else:
+        custom_key_maker_wrapper = None
+
     # Create wrapper
-    wrapper = _create_cached_wrapper(user_function, max_size, ttl, algorithm, thread_safe, order_independent)
+    wrapper = _create_cached_wrapper(user_function, max_size, ttl, algorithm,
+                                     thread_safe, order_independent, custom_key_maker_wrapper)
     return update_wrapper(wrapper, user_function)  # update wrapper to make it look like the original function
 
 
-def _create_cached_wrapper(user_function, max_size, ttl, algorithm, thread_safe, order_independent):
+def _create_cached_wrapper(user_function, max_size, ttl, algorithm, thread_safe, order_independent, custom_key_maker):
     """
     Factory that creates an actual executed function when a function is decorated with @cached
     """
     if max_size == 0:
-        return statistic_cache.get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe, order_independent)
+        return statistic_cache.get_caching_wrapper(user_function, max_size, ttl, algorithm,
+                                                   thread_safe, order_independent, custom_key_maker)
     elif max_size is None:
-        return plain_cache.get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe, order_independent)
+        return plain_cache.get_caching_wrapper(user_function, max_size, ttl, algorithm,
+                                               thread_safe, order_independent, custom_key_maker)
     else:
         cache_toolkit = get_cache_toolkit(algorithm)
-        return cache_toolkit.get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe, order_independent)
+        return cache_toolkit.get_caching_wrapper(user_function, max_size, ttl, algorithm,
+                                                 thread_safe, order_independent, custom_key_maker)
 
 
 if __name__ == '__main__':

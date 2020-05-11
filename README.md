@@ -29,6 +29,7 @@ Well, actually not. This lib is based on ```functools```. Please find below the 
 |Extensibility for new caching algorithms|No support|✔️|
 |TTL (Time-To-Live) support|No support|✔️|
 |Support for unhashable arguments (dict, list, etc.)|No support|✔️|
+|Custom cache keys|No support|✔️|
 |Partial cache clearing|No support|Pending implementation in v0.3.x|
 |Python version|3.2+|3.4+|
 
@@ -48,8 +49,10 @@ TypeError: unhashable type: 'list'
 ```
 
 2. ```lru_cache``` is vulnerable to [__hash collision attack__](https://learncryptography.com/hash-functions/hash-collision-attack)
-   and can be hacked or compromised. In ```memoization```, caching is always typed, which means ```f(3)``` and 
-   ```f(3.0)``` will be treated as different calls and cached separately. This prevents the attack from happening
+   and can be hacked or compromised. Using this technique, attackers can make your program unexpectedly slow by feeding
+   the cached function with certain cleverly designed inputs. However, in ```memoization```, caching is always typed,
+   which means ```f(3)``` and ```f(3.0)``` will be treated as different calls and cached separately. Also, you can
+   build your own cache key with a unique hashing strategy. These measures prevents the attack from happening
    (or at least makes it a lot harder).
 
 ```python
@@ -70,7 +73,7 @@ pip install memoization
 ```
 
 
-## Usage in 2 lines
+## 1-Minute Tutorial
 
 ```python
 from memoization import cached
@@ -83,10 +86,13 @@ def func(arg):
 Simple enough - the results of ```func()``` are cached. 
 Repetitive calls to ```func()``` with the same arguments run ```func()``` only once, enhancing performance.
 
+>:warning: __WARNING:__ for functions with unhashable arguments, the default setting may not enable `memoization` to work properly. [Details](https://github.com/lonelyenvoy/python-memoization#custom-cache-keys)
 
-## Advanced features
+## 10-Minute Tutorial
 
-Configurable options include `ttl`, `max_size`, `algorithm` and `thread_safe`.
+You will learn about the advanced features in the following tutorial, which enable you to customize `memoization` .
+
+Configurable options include `ttl`, `max_size`, `algorithm`, `thread_safe`, `order_independent` and `custom_key_maker`.
 
 ### TTL (Time-To-Live)
 
@@ -154,6 +160,42 @@ def func(**kwargs):
     ...
 ```
 
+### Custom cache keys
+
+Prior to memorize your function inputs and outputs (i.e. putting them into a cache), `memoization` needs to
+build a __cache key__ using the inputs, so that the outputs can be retrieved later.
+
+By default, `memoization` tries to combine all your function
+arguments and calculate its hash value using `hash()`. If it turns out that parts of your arguments are
+unhashable, `memoization` will fall back to turning them into a string using `str()`. This behavior relies
+on the assumption that the string exactly represents the internal state of the arguments, which is true for
+built-in types.
+
+However, this is not true for all objects. __If you pass objects which are
+instances of non-built-in classes, sometimes you will need to override the default key-making procedure__,
+because the `str()` function on these objects may not hold the correct information about their states.
+
+Here are some suggestions. Implementations of a valid key maker:
+
+- MUST be a function with the same signature as the cached function.
+- MUST produce unique keys, which means two sets of different arguments always map to two different keys.
+- MUST produce hashable keys, and a key is comparable with another key (`memoization` only needs to check for their equality).
+- should compute keys efficiently and produce small objects as keys.
+
+Example:
+
+```python
+def get_employee_id(employee):
+    return employee.id
+
+@cached(custom_key_maker=get_employee_id)
+def calculate_performance(employee):
+    ...
+```
+
+Note that writing a robust key maker function can be challenging in some situations. If you find it difficult,
+feel free to ask me for help by submitting an [issue](https://github.com/lonelyenvoy/python-memoization/issues).
+
 
 ### Knowing how well the cache is behaving
 
@@ -162,7 +204,7 @@ def func(**kwargs):
 ... def f(x): return x
 ... 
 >>> f.cache_info()
-CacheInfo(hits=0, misses=0, current_size=0, max_size=None, algorithm=<CachingAlgorithmFlag.LRU: 2>, ttl=None, thread_safe=True, order_independent=False)
+CacheInfo(hits=0, misses=0, current_size=0, max_size=None, algorithm=<CachingAlgorithmFlag.LRU: 2>, ttl=None, thread_safe=True, order_independent=False, use_custom_key=False)
 ```
 
 With ```cache_info```, you can retrieve the number of ```hits``` and ```misses``` of the cache, and other information indicating the caching status.
@@ -175,6 +217,7 @@ With ```cache_info```, you can retrieve the number of ```hits``` and ```misses``
 - `ttl`: Time-To-Live value (user-specified)
 - `thread_safe`: whether the cache is thread safe (user-specified)
 - `order_independent`: whether the cache is kwarg-order-independent (user-specified)
+- `use_custom_key`: whether a custom key maker is used
 
 ### Other APIs
 

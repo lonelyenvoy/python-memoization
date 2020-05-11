@@ -121,6 +121,46 @@ def f16(*args, **kwargs):
     return list(args) + [(key, value) for (key, value) in kwargs.items()]
 
 
+@cached(max_size=5)
+def f17(a=1, *b, c=2, **d):
+    exec_times['f17'] += 1
+    return a, b, c, d
+
+
+def general_custom_key_maker(a=1, *b, c=2, **d):
+    return a
+
+
+@cached(max_size=5, custom_key_maker=general_custom_key_maker)
+def f18(a=1, *b, c=2, **d):
+    exec_times['f18'] += 1
+    return a, b, c, d
+
+
+@cached(max_size=5, custom_key_maker=lambda a=1, *b, c=2, **d: a)
+def f19(a=1, *b, c=2, **d):
+    exec_times['f19'] += 1
+    return a, b, c, d
+
+
+@cached(max_size=5, algorithm=CachingAlgorithmFlag.FIFO, custom_key_maker=general_custom_key_maker)
+def f20(a=1, *b, c=2, **d):
+    exec_times['f20'] += 1
+    return a, b, c, d
+
+
+@cached(max_size=5, algorithm=CachingAlgorithmFlag.LRU, custom_key_maker=general_custom_key_maker)
+def f21(a=1, *b, c=2, **d):
+    exec_times['f21'] += 1
+    return a, b, c, d
+
+
+@cached(max_size=5, algorithm=CachingAlgorithmFlag.LFU, custom_key_maker=general_custom_key_maker)
+def f22(a=1, *b, c=2, **d):
+    exec_times['f22'] += 1
+    return a, b, c, d
+
+
 ################################################################################
 # Test entry point
 ################################################################################
@@ -293,6 +333,21 @@ class TestMemoization(unittest.TestCase):
         self.assertEqual(info.hits, 2)
         self.assertEqual(info.misses, 1)
         self.assertEqual(info.current_size, 1)
+
+    def test_memoization_for_all_kinds_of_args(self):
+        self.assertTrue(hasattr(f17, '_lru_root'))
+        self._lru_test(f17)
+        f17.cache_clear()
+        self._check_empty_cache_after_clearing(f17)
+
+    def test_memoization_for_custom_key_maker_function(self):
+        self._general_custom_key_maker_for_all_kinds_of_args_test(f18, general_custom_key_maker)
+        self._general_custom_key_maker_for_all_kinds_of_args_test(f20, general_custom_key_maker)
+        self._general_custom_key_maker_for_all_kinds_of_args_test(f21, general_custom_key_maker)
+        self._general_custom_key_maker_for_all_kinds_of_args_test(f22, general_custom_key_maker)
+
+    def test_memoization_for_custom_key_maker_lambda(self):
+        self._general_custom_key_maker_for_all_kinds_of_args_test(f19, general_custom_key_maker)
 
     def _general_test(self, tested_function, algorithm, hits, misses, in_cache, not_in_cache):
         # clear
@@ -537,6 +592,34 @@ class TestMemoization(unittest.TestCase):
             self.assertEqual(info.hits, 1)
             self.assertEqual(info.misses, 2)
             self.assertEqual(info.current_size, 2)
+
+    def _general_custom_key_maker_for_all_kinds_of_args_test(self, tested_function, custom_key_maker):
+        # clear
+        exec_times[tested_function.__name__] = 0
+        tested_function.cache_clear()
+
+        for _ in range(3):
+            tested_function(2, 3, 4, 5, 6, c=7, test=True, how_many_args=8)
+        tested_function(10, 3, 4, 5, 6, c=7, test=True, how_many_args=8)
+        tested_function(a=50)
+
+        self.assertEqual(exec_times[tested_function.__name__], 3)
+        info = tested_function.cache_info()
+        self.assertEqual(info.max_size, 5)
+        self.assertIsNotNone(info.algorithm)
+        self.assertIsNone(info.ttl)
+        self.assertIsNotNone(info.thread_safe)
+        self.assertTrue(info.use_custom_key)
+
+        self.assertEqual(info.hits, 2)
+        self.assertEqual(info.misses, 3)
+        self.assertEqual(info.current_size, 3)
+
+        keys = [custom_key_maker(2, 3, 4, 5, 6, c=7, test=True, how_many_args=8),
+                custom_key_maker(10, 3, 4, 5, 6, c=7, test=True, how_many_args=8),
+                custom_key_maker(a=50)]
+        for key in keys:
+            self.assertIn(key, tested_function._cache)
 
 
 if __name__ == '__main__':

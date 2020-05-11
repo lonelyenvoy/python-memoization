@@ -7,24 +7,27 @@ import memoization.caching.general.values_with_ttl as values_toolkit_with_ttl
 import memoization.caching.general.values_without_ttl as values_toolkit_without_ttl
 
 
-def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe, order_independent):
+def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe, order_independent, custom_key_maker):
     """
     Get a caching wrapper for LFU cache
     """
 
-    cache = {}                                              # the cache to store function results
-    sentinel = object()                                     # sentinel object for the default value of map.get
-    hits = misses = 0                                       # hits and misses of the cache
-    lock = RLock() if thread_safe else DummyWithable()      # ensure thread-safe
-    if ttl is not None:                                     # set up values toolkit according to ttl
+    cache = {}                                                  # the cache to store function results
+    sentinel = object()                                         # sentinel object for the default value of map.get
+    hits = misses = 0                                           # hits and misses of the cache
+    lock = RLock() if thread_safe else DummyWithable()          # ensure thread-safe
+    if ttl is not None:                                         # set up values toolkit according to ttl
         values_toolkit = values_toolkit_with_ttl
     else:
         values_toolkit = values_toolkit_without_ttl
-    if order_independent:                                   # set up keys toolkit according to order_independent
-        make_key = keys_toolkit_order_independent.make_key
+    if custom_key_maker is not None:                            # use custom make_key function
+        make_key = custom_key_maker
     else:
-        make_key = keys_toolkit_order_dependent.make_key
-    lfu_freq_list_root = _FreqNode.root()                   # LFU frequency list root
+        if order_independent:                                   # set up keys toolkit according to order_independent
+            make_key = keys_toolkit_order_independent.make_key
+        else:
+            make_key = keys_toolkit_order_dependent.make_key
+    lfu_freq_list_root = _FreqNode.root()                       # LFU frequency list root
 
     def wrapper(*args, **kwargs):
         """
@@ -73,7 +76,8 @@ def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe, or
         :return: a CacheInfo object describing the cache
         """
         with lock:
-            return CacheInfo(hits, misses, cache.__len__(), max_size, algorithm, ttl, thread_safe, order_independent)
+            return CacheInfo(hits, misses, cache.__len__(), max_size, algorithm,
+                             ttl, thread_safe, order_independent, custom_key_maker is not None)
 
     def get_caching_list():
         """

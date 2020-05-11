@@ -49,11 +49,11 @@ TypeError: unhashable type: 'list'
 ```
 
 2. ```lru_cache``` is vulnerable to [__hash collision attack__](https://learncryptography.com/hash-functions/hash-collision-attack)
-   and can be hacked or compromised. Using this technique, attackers can make your program unexpectedly slow by feeding
-   the cached function with certain cleverly designed inputs. However, in ```memoization```, caching is always typed,
-   which means ```f(3)``` and ```f(3.0)``` will be treated as different calls and cached separately. Also, you can
-   build your own cache key with a unique hashing strategy. These measures prevents the attack from happening
-   (or at least makes it a lot harder).
+   and can be hacked or compromised. Using this technique, attackers can make your program __unexpectedly slow__ by
+   feeding the cached function with certain cleverly designed inputs. However, in ```memoization```, caching is always
+   typed, which means ```f(3)``` and ```f(3.0)``` will be treated as different calls and cached separately. Also,
+   you can build your own cache key with a unique hashing strategy. These measures __prevents the attack__ from
+   happening (or at least makes it a lot harder).
 
 ```python
 >>> hash((1,))
@@ -86,7 +86,7 @@ def func(arg):
 Simple enough - the results of ```func()``` are cached. 
 Repetitive calls to ```func()``` with the same arguments run ```func()``` only once, enhancing performance.
 
->:warning: __WARNING:__ for functions with unhashable arguments, the default setting may not enable `memoization` to work properly. [Details](https://github.com/lonelyenvoy/python-memoization#custom-cache-keys)
+>:warning:__WARNING:__ for functions with unhashable arguments, the default setting may not enable `memoization` to work properly. See [custom cache keys](https://github.com/lonelyenvoy/python-memoization#custom-cache-keys) section below for details.
 
 ## 10-Minute Tutorial
 
@@ -165,7 +165,7 @@ def func(**kwargs):
 Prior to memorize your function inputs and outputs (i.e. putting them into a cache), `memoization` needs to
 build a __cache key__ using the inputs, so that the outputs can be retrieved later.
 
-By default, `memoization` tries to combine all your function
+> By default, `memoization` tries to combine all your function
 arguments and calculate its hash value using `hash()`. If it turns out that parts of your arguments are
 unhashable, `memoization` will fall back to turning them into a string using `str()`. This behavior relies
 on the assumption that the string exactly represents the internal state of the arguments, which is true for
@@ -175,7 +175,7 @@ However, this is not true for all objects. __If you pass objects which are
 instances of non-built-in classes, sometimes you will need to override the default key-making procedure__,
 because the `str()` function on these objects may not hold the correct information about their states.
 
-Here are some suggestions. Implementations of a valid key maker:
+Here are some suggestions. __Implementations of a valid key maker__:
 
 - MUST be a function with the same signature as the cached function.
 - MUST produce unique keys, which means two sets of different arguments always map to two different keys.

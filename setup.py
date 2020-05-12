@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 from memoization.memoization import __version__ as memoization_version
 
-with open('README.md', 'r') as f:
+with open('README.md', 'r', encoding='utf8') as f:
     long_description = f.read()
 
 setup(

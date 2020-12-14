@@ -6,6 +6,7 @@ import time
 from itertools import chain
 from threading import Thread
 from threading import Lock
+import inspect
 
 from memoization import cached, CachingAlgorithmFlag
 from memoization.caching.general.keys_order_dependent import make_key
@@ -158,6 +159,41 @@ def f21(a=1, *b, c=2, **d):
 @cached(max_size=5, algorithm=CachingAlgorithmFlag.LFU, custom_key_maker=general_custom_key_maker)
 def f22(a=1, *b, c=2, **d):
     exec_times['f22'] += 1
+    return a, b, c, d
+
+
+def f23(a=1, *b, c=2, **d):
+    exec_times['f23'] += 1
+    return a, b, c, d
+
+
+@cached
+def f24(a=1, *b, c=2, **d):
+    exec_times['f24'] += 1
+    return a, b, c, d
+
+
+@cached()
+def f25(a=1, *b, c=2, **d):
+    exec_times['f25'] += 1
+    return a, b, c, d
+
+
+@cached(max_size=5, algorithm=CachingAlgorithmFlag.FIFO)
+def f26(a=1, *b, c=2, **d):
+    exec_times['f26'] += 1
+    return a, b, c, d
+
+
+@cached(max_size=5, algorithm=CachingAlgorithmFlag.LRU)
+def f27(a=1, *b, c=2, **d):
+    exec_times['f27'] += 1
+    return a, b, c, d
+
+
+@cached(max_size=5, algorithm=CachingAlgorithmFlag.LFU)
+def f28(a=1, *b, c=2, **d):
+    exec_times['f28'] += 1
     return a, b, c, d
 
 
@@ -349,6 +385,13 @@ class TestMemoization(unittest.TestCase):
     def test_memoization_for_custom_key_maker_lambda(self):
         self._general_custom_key_maker_for_all_kinds_of_args_test(f19, general_custom_key_maker)
 
+    def test_memoization_must_preserve_type_signature(self):
+        self.assertEqual(inspect.getfullargspec(f23), inspect.getfullargspec(f24))
+        self.assertEqual(inspect.getfullargspec(f23), inspect.getfullargspec(f25))
+        self.assertEqual(inspect.getfullargspec(f23), inspect.getfullargspec(f26))
+        self.assertEqual(inspect.getfullargspec(f23), inspect.getfullargspec(f27))
+        self.assertEqual(inspect.getfullargspec(f23), inspect.getfullargspec(f28))
+
     def _general_test(self, tested_function, algorithm, hits, misses, in_cache, not_in_cache):
         # clear
         exec_times[tested_function.__name__] = 0
@@ -512,7 +555,6 @@ class TestMemoization(unittest.TestCase):
 
         key = make_key((arg,), kwargs)
         call_tested_function(arg, kwargs)
-        time.sleep(0.25)  # wait for a short time
 
         info = tested_function.cache_info()
         self.assertEqual(info.hits, 0)
@@ -529,7 +571,7 @@ class TestMemoization(unittest.TestCase):
         self.assertIn(key, tested_function._cache)
         self.assertEqual(exec_times[tested_function.__name__], 1)
 
-        time.sleep(0.35)  # wait until the cache expires
+        time.sleep(0.6)  # wait until the cache expires
 
         info = tested_function.cache_info()
         self.assertEqual(info.current_size, 1)

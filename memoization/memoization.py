@@ -120,6 +120,7 @@ def cached(user_function=None, max_size=None, ttl=None,
     # Create wrapper
     wrapper = _create_cached_wrapper(user_function, max_size, ttl, algorithm,
                                      thread_safe, order_independent, custom_key_maker_wrapper)
+    wrapper.__signature__ = inspect.signature(user_function)  # copy the signature of user_function to the wrapper
     return update_wrapper(wrapper, user_function)  # update wrapper to make it look like the original function
 
 

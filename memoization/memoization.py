@@ -4,7 +4,7 @@ import warnings
 
 import memoization.caching.statistic_cache as statistic_cache
 import memoization.caching.plain_cache as plain_cache
-from memoization.constant.flag import CachingAlgorithmFlag
+from memoization.constant.flag import CachingAlgorithmFlag as CachingAlgorithmFlag  # for type-checking to work properly
 from memoization.config.algorithm_mapping import get_cache_toolkit
 
 

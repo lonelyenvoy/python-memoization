@@ -2,7 +2,7 @@ import sys
 
 __all__ = ['cached', 'CachingAlgorithmFlag', 'FIFO', 'LRU', 'LFU']
 
-if (3, 4) <= sys.version_info <= (3, 10):  # for Python 3.4, 3.5, 3.6, 3.7, 3.8, 3.9
+if (3, 4) <= sys.version_info < (4, 0):  # for Python >=3.4 <4
     from . import memoization as _memoization
 
 try:

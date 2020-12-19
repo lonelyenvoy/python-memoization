@@ -44,7 +44,8 @@ def validate():
                                  .format(cache_toolkit.__name__))
                 return
             wrapper = cache_toolkit.get_caching_wrapper(
-                user_function=undecorated_tested_function, max_size=5, ttl=0.5, algorithm=member, thread_safe=True)
+                user_function=undecorated_tested_function, max_size=5, ttl=0.5, algorithm=member,
+                thread_safe=True, order_independent=False, custom_key_maker=None)
             if not hasattr(wrapper, 'cache_info'):
                 has_cache_info = False
                 _error('Cannot find cache_info function in the cache wrapper of <{}>\n'

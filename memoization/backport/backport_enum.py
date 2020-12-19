@@ -1,8 +1,6 @@
 # This file is a duplicate of enum.py in stdlib of Python 3.7.2
 # DO NOT modify
 
-# type: ignore
-
 import sys
 from types import MappingProxyType, DynamicClassAttribute
 

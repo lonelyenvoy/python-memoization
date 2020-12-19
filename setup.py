@@ -1,4 +1,4 @@
-from setuptools import setup, find_packages
+from setuptools import setup, find_packages  # type: ignore
 from memoization.memoization import __version__ as memoization_version
 
 with open('README.md', 'r', encoding='utf8') as f:
@@ -18,7 +18,12 @@ setup(
     author_email='petrinchor@gmail.com',
     license='MIT',
     packages=find_packages(),
-    exclude_package_data={'': ['examples.py', 'test.py']},
+    package_data={
+        'memoization': ['py.typed'],
+    },
+    exclude_package_data={
+        '': ['examples.py', 'test.py']
+    },
     python_requires='>=3, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, <4',
     classifiers=[
         'Development Status :: 5 - Production/Stable',

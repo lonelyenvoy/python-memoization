@@ -69,7 +69,7 @@ __any caching algorithms__ (beyond FIFO, LRU and LFU) into this library. See [Co
 ## Installation
 
 ```bash
-pip install memoization
+pip install -U memoization
 ```
 
 

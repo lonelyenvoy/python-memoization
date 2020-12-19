@@ -2,4 +2,6 @@
 omit =
     memoization/backport/*
     memoization/util/algorithm_extension_validator.py
-    home/travis/*
+    home/travis/virtualenv/python3.10-dev/lib/python3.10/site-packages/*
+    home/travis/virtualenv/python3.9-dev/lib/python3.9/site-packages/*
+    home/travis/virtualenv/python3.9.0/lib/python3.9/site-packages/*

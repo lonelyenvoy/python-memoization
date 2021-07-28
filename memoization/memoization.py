@@ -9,8 +9,11 @@ from memoization.config.algorithm_mapping import get_cache_toolkit
 
 
 # Public symbols
-__all__ = ['cached', 'CachingAlgorithmFlag']
+__all__ = ['cached', 'suppress_warnings', 'CachingAlgorithmFlag']
 __version__ = '0.3.2'
+
+# Whether warnings are enabled
+_warning_enabled = True
 
 
 # Insert the algorithm flags to the global namespace for convenience
@@ -95,22 +98,19 @@ def cached(user_function=None, max_size=None, ttl=None,
     if custom_key_maker is not None and not hasattr(custom_key_maker, '__call__'):
         raise TypeError('Expected custom_key_maker to be callable or None')
 
-    # Warn on zero-argument functions
-    user_function_info = inspect.getfullargspec(user_function)
-    if len(user_function_info.args) == 0 and user_function_info.varargs is None and user_function_info.varkw is None \
-            and max_size is None and ttl is None:
-        warnings.warn('It makes no sense to do memoization on a function without arguments', SyntaxWarning)
-
     # Check custom key maker and wrap it
     if custom_key_maker is not None:
-        custom_key_maker_info = inspect.getfullargspec(custom_key_maker)
-        if custom_key_maker_info.args != user_function_info.args or \
-                custom_key_maker_info.varargs != user_function_info.varargs or \
-                custom_key_maker_info.varkw != user_function_info.varkw or \
-                custom_key_maker_info.kwonlyargs != user_function_info.kwonlyargs or \
-                custom_key_maker_info.defaults != user_function_info.defaults or \
-                custom_key_maker_info.kwonlydefaults != user_function_info.kwonlydefaults:
-            raise TypeError('Expected custom_key_maker to have the same signature as the function being cached')
+        if _warning_enabled:
+            custom_key_maker_info = inspect.getfullargspec(custom_key_maker)
+            user_function_info = inspect.getfullargspec(user_function)
+            if custom_key_maker_info.args != user_function_info.args or \
+                    custom_key_maker_info.varargs != user_function_info.varargs or \
+                    custom_key_maker_info.varkw != user_function_info.varkw or \
+                    custom_key_maker_info.kwonlyargs != user_function_info.kwonlyargs or \
+                    custom_key_maker_info.defaults != user_function_info.defaults or \
+                    custom_key_maker_info.kwonlydefaults != user_function_info.kwonlydefaults:
+                warnings.warn('Expected custom_key_maker to have the same signature as the function being cached. '
+                              'Call memoization.suppress_warnings() to remove this message.', SyntaxWarning)
 
         def custom_key_maker_wrapper(args, kwargs):
             return custom_key_maker(*args, **kwargs)
@@ -122,6 +122,16 @@ def cached(user_function=None, max_size=None, ttl=None,
                                      thread_safe, order_independent, custom_key_maker_wrapper)
     wrapper.__signature__ = inspect.signature(user_function)  # copy the signature of user_function to the wrapper
     return update_wrapper(wrapper, user_function)  # update wrapper to make it look like the original function
+
+
+def suppress_warnings(should_warn=False):
+    """
+    Disable/Enable warnings when @cached is used
+
+    :param should_warn: Whether warnings should be shown (False by default)
+    """
+    global _warning_enabled
+    _warning_enabled = should_warn
 
 
 def _create_cached_wrapper(user_function, max_size, ttl, algorithm, thread_safe, order_independent, custom_key_maker):
@@ -145,5 +155,3 @@ if __name__ == '__main__':
     sys.stderr.write('python-memoization v' + __version__ +
                      ': A powerful caching library for Python, with TTL support and multiple algorithm options.\n')
     sys.stderr.write('Go to https://github.com/lonelyenvoy/python-memoization for usage and more details.\n')
-
-

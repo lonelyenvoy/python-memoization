@@ -1,6 +1,6 @@
 import sys
 
-__all__ = ['cached', 'CachingAlgorithmFlag', 'FIFO', 'LRU', 'LFU']
+__all__ = ['cached', 'suppress_warnings', 'CachingAlgorithmFlag', 'FIFO', 'LRU', 'LFU']
 
 if (3, 4) <= sys.version_info < (4, 0):  # for Python >=3.4 <4
     from . import memoization as _memoization
@@ -13,6 +13,7 @@ except NameError:
     raise ImportError('Unsupported python version')
 else:
     cached = _memoization.cached
+    suppress_warnings = _memoization.suppress_warnings
     CachingAlgorithmFlag = _memoization.CachingAlgorithmFlag
     FIFO = _memoization.CachingAlgorithmFlag.FIFO
     LRU = _memoization.CachingAlgorithmFlag.LRU

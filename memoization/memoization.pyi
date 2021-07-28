@@ -20,4 +20,6 @@ def cached(max_size: Optional[int] = ...,
 @overload
 def cached(user_function: T = ...) -> CachedFunction[T]: ...
 
+def suppress_warnings(should_warn: bool = ...) -> None: ...
+
 CachingAlgorithmFlag = CachingAlgorithmFlagType

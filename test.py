@@ -7,8 +7,9 @@ from itertools import chain
 from threading import Thread
 from threading import Lock
 import inspect
+import warnings
 
-from memoization import cached, CachingAlgorithmFlag
+from memoization import cached, suppress_warnings, CachingAlgorithmFlag
 from memoization.caching.general.keys_order_dependent import make_key
 
 exec_times = {}                   # executed time of each tested function
@@ -391,6 +392,38 @@ class TestMemoization(unittest.TestCase):
         self.assertEqual(inspect.getfullargspec(f23), inspect.getfullargspec(f26))
         self.assertEqual(inspect.getfullargspec(f23), inspect.getfullargspec(f27))
         self.assertEqual(inspect.getfullargspec(f23), inspect.getfullargspec(f28))
+
+    def test_memoization_with_custom_key_maker_and_inconsistent_type_signature(self):
+        def inconsistent_custom_key_maker(*args, **kwargs):
+            return args[0]
+
+        def should_show_warning():
+            with warnings.catch_warnings(record=True) as caught_warnings:
+                warnings.simplefilter('always')
+
+                @cached(max_size=5, custom_key_maker=inconsistent_custom_key_maker)
+                def f(a=1, *b, c=2, **d):
+                    return a, b, c, d
+
+                self.assertEqual(len(caught_warnings), 1)
+                self.assertEqual(caught_warnings[0].category, SyntaxWarning)
+                self.assertTrue('signature' in str(caught_warnings[0].message))
+
+        def should_not_show_warning():
+            with warnings.catch_warnings(record=True) as caught_warnings:
+                warnings.simplefilter('always')
+
+                @cached(max_size=5, custom_key_maker=inconsistent_custom_key_maker)
+                def f(a=1, *b, c=2, **d):
+                    return a, b, c, d
+
+                self.assertEqual(len(caught_warnings), 0)
+
+        should_show_warning()
+        suppress_warnings(should_warn=False)
+        should_not_show_warning()
+        suppress_warnings(should_warn=True)
+        should_show_warning()
 
     def _general_test(self, tested_function, algorithm, hits, misses, in_cache, not_in_cache):
         # clear

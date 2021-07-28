@@ -194,7 +194,7 @@ def calculate_performance(employee):
 ```
 
 Note that writing a robust key maker function can be challenging in some situations. If you find it difficult,
-feel free to ask me for help by submitting an [issue](https://github.com/lonelyenvoy/python-memoization/issues).
+feel free to ask for help by submitting an [issue](https://github.com/lonelyenvoy/python-memoization/issues).
 
 
 ### Knowing how well the cache is behaving
@@ -223,6 +223,7 @@ With ```cache_info```, you can retrieve the number of ```hits``` and ```misses``
 
 - Access the original function ```f``` by ```f.__wrapped__```.
 - Clear the cache by ```f.cache_clear()```.
+- Disable `SyntaxWarning` by ```memoization.suppress_warnings()```.
 
 
 ## Contributing

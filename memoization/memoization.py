@@ -110,7 +110,8 @@ def cached(user_function=None, max_size=None, ttl=None,
                     custom_key_maker_info.defaults != user_function_info.defaults or \
                     custom_key_maker_info.kwonlydefaults != user_function_info.kwonlydefaults:
                 warnings.warn('Expected custom_key_maker to have the same signature as the function being cached. '
-                              'Call memoization.suppress_warnings() to remove this message.', SyntaxWarning)
+                              'Call memoization.suppress_warnings() before using @cached to remove this message.',
+                              SyntaxWarning)
 
         def custom_key_maker_wrapper(args, kwargs):
             return custom_key_maker(*args, **kwargs)
@@ -127,6 +128,7 @@ def cached(user_function=None, max_size=None, ttl=None,
 def suppress_warnings(should_warn=False):
     """
     Disable/Enable warnings when @cached is used
+    Must be called before using @cached
 
     :param should_warn: Whether warnings should be shown (False by default)
     """

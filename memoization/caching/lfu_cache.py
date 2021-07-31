@@ -79,27 +79,185 @@ def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe, or
             return CacheInfo(hits, misses, cache.__len__(), max_size, algorithm,
                              ttl, thread_safe, order_independent, custom_key_maker is not None)
 
-    def get_caching_list():
+    def cache_is_empty():
+        """Return True if the cache contains no elements"""
+        return cache.__len__() == 0
+
+    def cache_is_full():
+        """Return True if the cache is full"""
+        return cache.__len__() >= max_size
+
+    def cache_contains_argument(function_arguments, alive_only=False):
         """
-        Get a list containing all (key, value) in the cache in an order determined by the algorithm - LFU
+        Return True if the cache contains a cached item with the specified function call arguments
+
+        :param function_arguments:  Can be a list, a tuple or a dict.
+                                    - Full arguments: use a list to represent both positional arguments and keyword
+                                      arguments. The list contains two elements, a tuple (positional arguments) and
+                                      a dict (keyword arguments). For example,
+                                        f(1, 2, 3, a=4, b=5, c=6)
+                                      can be represented by:
+                                        [(1, 2, 3), {'a': 4, 'b': 5, 'c': 6}]
+                                    - Positional arguments only: when the arguments does not include keyword arguments,
+                                      a tuple can be used to represent positional arguments. For example,
+                                        f(1, 2, 3)
+                                      can be represented by:
+                                        (1, 2, 3)
+                                    - Keyword arguments only: when the arguments does not include positional arguments,
+                                      a dict can be used to represent keyword arguments. For example,
+                                        f(a=4, b=5, c=6)
+                                      can be represented by:
+                                        {'a': 4, 'b': 5, 'c': 6}
+
+        :param alive_only:          Whether to check alive cache item only (default to False).
+
+        :return:                    True if the desired cached item is present, False otherwise.
         """
-        result = []
-        freq_node = lfu_freq_list_root.prev
-        while freq_node != lfu_freq_list_root:
-            cache_node = freq_node.cache_head.next
-            while cache_node != freq_node.cache_head:
-                result.append((cache_node.key, cache_node.value))
-                cache_node = cache_node.next
-            freq_node = freq_node.prev
-        return result
+        if isinstance(function_arguments, tuple):
+            positional_argument_tuple = function_arguments
+            keyword_argument_dict = {}
+        elif isinstance(function_arguments, dict):
+            positional_argument_tuple = ()
+            keyword_argument_dict = function_arguments
+        elif isinstance(function_arguments, list) and len(function_arguments) == 2:
+            positional_argument_tuple, keyword_argument_dict = function_arguments
+            if not isinstance(positional_argument_tuple, tuple) or not isinstance(keyword_argument_dict, dict):
+                raise TypeError('Expected function_arguments to be a list containing a positional argument tuple '
+                                'and a keyword argument dict')
+        else:
+            raise TypeError('Expected function_arguments to be a tuple, a dict, or a list with 2 elements')
+        key = make_key(positional_argument_tuple, keyword_argument_dict)
+        with lock:
+            cache_node = cache.get(key, sentinel)
+            if cache_node is not sentinel:
+                return values_toolkit.is_cache_value_valid(cache_node.value) if alive_only else True
+            return False
+
+    def cache_contains_key(key, alive_only=False):
+        """
+        Return True if the cache contains a cache item with the specified key. This function is only recommended to use
+        when you provide a custom key maker; otherwise, use cache_contains_argument() instead.
+
+        :param key:                 A key built by the default key maker or a custom key maker.
+
+        :param alive_only:          Whether to check alive cache item only (default to False).
+
+        :return:                    True if the desired cached item is present, False otherwise.
+        """
+        with lock:
+            cache_node = cache.get(key, sentinel)
+            if cache_node is not sentinel:
+                return values_toolkit.is_cache_value_valid(cache_node.value) if alive_only else True
+            return False
+
+    def cache_contains_result(return_value, alive_only=False):
+        """
+        Return True if the cache contains a cache item with the specified user function return value. O(n) time
+        complexity.
+
+        :param return_value:        A return value coming from the user function.
+
+        :param alive_only:          Whether to check alive cache item only (default to False).
+
+        :return:                    True if the desired cached item is present, False otherwise.
+        """
+        with lock:
+            freq_node = lfu_freq_list_root.prev
+            while freq_node != lfu_freq_list_root:
+                cache_head = freq_node.cache_head
+                cache_node = cache_head.next
+                while cache_node != cache_head:
+                    is_alive = values_toolkit.is_cache_value_valid(cache_node.value)
+                    cache_result = values_toolkit.retrieve_result_from_cache_value(cache_node.value)
+                    if cache_result == return_value:
+                        return is_alive if alive_only else True
+                    cache_node = cache_node.next
+                freq_node = freq_node.prev
+            return False
+
+    def cache_for_each(consumer):
+        """
+        Perform the given action for each cache element in an order determined by the algorithm (FIFO) until all
+        elements have been processed or the action throws an error
+
+        :param consumer:            an action function to process the cache elements. Must have 3 arguments:
+                                      def consumer(cache_key, cache_result, is_alive): ...
+                                    cache_key is built by the default key maker or a custom key maker.
+                                    cache_result is a return value coming from the user function.
+                                    is_alive is a boolean value indicating whether the cache is still alive
+                                    (if a TTL is given).
+        """
+        with lock:
+            freq_node = lfu_freq_list_root.prev
+            while freq_node != lfu_freq_list_root:
+                cache_head = freq_node.cache_head
+                cache_node = cache_head.next
+                while cache_node != cache_head:
+                    is_alive = values_toolkit.is_cache_value_valid(cache_node.value)
+                    cache_result = values_toolkit.retrieve_result_from_cache_value(cache_node.value)
+                    consumer(cache_node.key, cache_result, is_alive)
+                    cache_node = cache_node.next
+                freq_node = freq_node.prev
+
+    def cache_remove_if(predicate):
+        """
+        Remove all cache elements that satisfy the given predicate
+
+        :param predicate:           a predicate function to judge whether the cache elements should be removed. Must
+                                    have 3 arguments:
+                                      def consumer(cache_key, cache_result, is_alive): ...
+                                    cache_key is built by the default key maker or a custom key maker.
+                                    cache_result is a return value coming from the user function.
+                                    is_alive is a boolean value indicating whether the cache is still alive
+                                    (if a TTL is given).
+
+        :return:                    True if at least one element is removed, False otherwise.
+        """
+        removed = False
+        with lock:
+            freq_node = lfu_freq_list_root.prev
+            while freq_node != lfu_freq_list_root:
+                cache_head = freq_node.cache_head
+                cache_node = cache_head.next
+                removed_under_this_freq_node = False
+                while cache_node != cache_head:
+                    is_alive = values_toolkit.is_cache_value_valid(cache_node.value)
+                    cache_result = values_toolkit.retrieve_result_from_cache_value(cache_node.value)
+                    if predicate(cache_node.key, cache_result, is_alive):
+                        removed = removed_under_this_freq_node = True
+                        next_cache_node = cache_node.next
+                        del cache[cache_node.key]  # delete from cache
+                        cache_node.destroy()  # modify references, drop this cache node
+                        cache_node = next_cache_node
+                    else:
+                        cache_node = cache_node.next
+                # check whether only one cache node is left
+                if removed_under_this_freq_node and freq_node.cache_head.next == freq_node.cache_head:
+                    # Getting here means that we just deleted the only data node in the cache list
+                    # Note: there is still an empty sentinel node
+                    # We then need to destroy the sentinel node and its parent frequency node too
+                    prev_freq_node = freq_node.prev
+                    freq_node.cache_head.destroy()
+                    freq_node.destroy()
+                    freq_node = prev_freq_node
+                else:
+                    freq_node = freq_node.prev
+        return removed
 
     # expose operations to wrapper
     wrapper.cache_clear = cache_clear
     wrapper.cache_info = cache_info
+    wrapper.cache_is_empty = cache_is_empty
+    wrapper.cache_is_full = cache_is_full
+    wrapper.cache_contains_argument = cache_contains_argument
+    wrapper.cache_contains_key = cache_contains_key
+    wrapper.cache_contains_result = cache_contains_result
+    wrapper.cache_for_each = cache_for_each
+    wrapper.cache_remove_if = cache_remove_if
+    wrapper.cache_make_key = make_key
     wrapper._cache = cache
     wrapper._lfu_root = lfu_freq_list_root
     wrapper._root_name = '_lfu_root'
-    wrapper._get_caching_list = get_caching_list
 
     return wrapper
 

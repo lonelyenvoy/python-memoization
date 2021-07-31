@@ -10,13 +10,12 @@ import inspect
 import warnings
 
 from memoization import cached, suppress_warnings, CachingAlgorithmFlag
-from memoization.caching.general.keys_order_dependent import make_key
 
 exec_times = {}                   # executed time of each tested function
 lock = Lock()                     # for multi-threading tests
 random.seed(100)                  # set seed to ensure that test results are reproducible
 
-for i in range(1, 17):
+for i in range(1, 100):
     exec_times['f' + str(i)] = 0  # init to zero
 
 
@@ -96,19 +95,19 @@ def f11(x):
 @cached(max_size=5, algorithm=CachingAlgorithmFlag.FIFO, thread_safe=False, ttl=0.5)
 def f12(arg, **kwargs):
     exec_times['f12'] += 1
-    return [arg] + [(key, value) for (key, value) in kwargs.items()]
+    return arg
 
 
 @cached(max_size=5, algorithm=CachingAlgorithmFlag.LRU, thread_safe=False, ttl=0.5)
 def f13(arg, **kwargs):
     exec_times['f13'] += 1
-    return [arg] + [(key, value) for (key, value) in kwargs.items()]
+    return arg
 
 
 @cached(max_size=5, algorithm=CachingAlgorithmFlag.LFU, thread_safe=False, ttl=0.5)
 def f14(arg, **kwargs):
     exec_times['f14'] += 1
-    return [arg] + [(key, value) for (key, value) in kwargs.items()]
+    return arg
 
 
 @cached(max_size=0)
@@ -120,13 +119,13 @@ def f15(x):
 @cached(order_independent=True)
 def f16(*args, **kwargs):
     exec_times['f16'] += 1
-    return list(args) + [(key, value) for (key, value) in kwargs.items()]
+    return args[0]
 
 
 @cached(max_size=5)
 def f17(a=1, *b, c=2, **d):
     exec_times['f17'] += 1
-    return a, b, c, d
+    return a
 
 
 def general_custom_key_maker(a=1, *b, c=2, **d):
@@ -136,65 +135,113 @@ def general_custom_key_maker(a=1, *b, c=2, **d):
 @cached(max_size=5, custom_key_maker=general_custom_key_maker)
 def f18(a=1, *b, c=2, **d):
     exec_times['f18'] += 1
-    return a, b, c, d
+    return a
 
 
 @cached(max_size=5, custom_key_maker=lambda a=1, *b, c=2, **d: a)
 def f19(a=1, *b, c=2, **d):
     exec_times['f19'] += 1
-    return a, b, c, d
+    return a
 
 
 @cached(max_size=5, algorithm=CachingAlgorithmFlag.FIFO, custom_key_maker=general_custom_key_maker)
 def f20(a=1, *b, c=2, **d):
     exec_times['f20'] += 1
-    return a, b, c, d
+    return a
 
 
 @cached(max_size=5, algorithm=CachingAlgorithmFlag.LRU, custom_key_maker=general_custom_key_maker)
 def f21(a=1, *b, c=2, **d):
     exec_times['f21'] += 1
-    return a, b, c, d
+    return a
 
 
 @cached(max_size=5, algorithm=CachingAlgorithmFlag.LFU, custom_key_maker=general_custom_key_maker)
 def f22(a=1, *b, c=2, **d):
     exec_times['f22'] += 1
-    return a, b, c, d
+    return a
 
 
 def f23(a=1, *b, c=2, **d):
     exec_times['f23'] += 1
-    return a, b, c, d
+    return a
 
 
 @cached
 def f24(a=1, *b, c=2, **d):
     exec_times['f24'] += 1
-    return a, b, c, d
+    return a
 
 
 @cached()
 def f25(a=1, *b, c=2, **d):
     exec_times['f25'] += 1
-    return a, b, c, d
+    return a
 
 
 @cached(max_size=5, algorithm=CachingAlgorithmFlag.FIFO)
 def f26(a=1, *b, c=2, **d):
     exec_times['f26'] += 1
-    return a, b, c, d
+    return a
 
 
 @cached(max_size=5, algorithm=CachingAlgorithmFlag.LRU)
 def f27(a=1, *b, c=2, **d):
     exec_times['f27'] += 1
-    return a, b, c, d
+    return a
 
 
 @cached(max_size=5, algorithm=CachingAlgorithmFlag.LFU)
 def f28(a=1, *b, c=2, **d):
     exec_times['f28'] += 1
+    return a
+
+
+@cached(max_size=5, algorithm=CachingAlgorithmFlag.FIFO, ttl=0.5)
+def f29(a=1, *b, c=2, **d):
+    exec_times['f29'] += 1
+    return a
+
+
+@cached(max_size=5, algorithm=CachingAlgorithmFlag.LRU, ttl=0.5)
+def f30(a=1, *b, c=2, **d):
+    exec_times['f30'] += 1
+    return a
+
+
+@cached(max_size=5, algorithm=CachingAlgorithmFlag.LFU, ttl=0.5)
+def f31(a=1, *b, c=2, **d):
+    exec_times['f31'] += 1
+    return a
+
+
+@cached(ttl=0.5)
+def f32(a=1, *b, c=2, **d):
+    exec_times['f32'] += 1
+    return a
+
+
+@cached(max_size=5, algorithm=CachingAlgorithmFlag.FIFO, ttl=0.5)
+def f33(a=1, *b, c=2, **d):
+    exec_times['f33'] += 1
+    return a, b, c, d
+
+
+@cached(max_size=5, algorithm=CachingAlgorithmFlag.LRU, ttl=0.5)
+def f34(a=1, *b, c=2, **d):
+    exec_times['f34'] += 1
+    return a, b, c, d
+
+
+@cached(max_size=5, algorithm=CachingAlgorithmFlag.LFU, ttl=0.5)
+def f35(a=1, *b, c=2, **d):
+    exec_times['f35'] += 1
+    return a, b, c, d
+
+
+@cached(ttl=0.5)
+def f36(a=1, *b, c=2, **d):
+    exec_times['f36'] += 1
     return a, b, c, d
 
 
@@ -223,9 +270,10 @@ class TestMemoization(unittest.TestCase):
             self.assertEqual(info.misses, 2)
             self.assertEqual(info.current_size, 2)
         for f in f1, f2:
-            keys = make_key((10,), None), make_key((20,), None)
+            keys = f.cache_make_key((10,), None), f.cache_make_key((20,), None)
             for key in keys:
                 self.assertIn(key, f._cache)
+                self.assertTrue(f.cache_contains_key(key))
 
         f1.cache_clear()
         f2.cache_clear()
@@ -425,14 +473,98 @@ class TestMemoization(unittest.TestCase):
         suppress_warnings(should_warn=True)
         should_show_warning()
 
+    def test_memoization_for_cache_contains(self):
+        for tested_function in (f29, f30, f31, f32):
+            tested_function(100)
+            self.assertTrue(tested_function.cache_contains_argument((100,)))
+            self.assertTrue(tested_function.cache_contains_key(tested_function.cache_make_key((100,), None)))
+            self.assertTrue(tested_function.cache_contains_result(100))
+            tested_function(keyword=10)
+            self.assertTrue(tested_function.cache_contains_argument({'keyword': 10}))
+            self.assertTrue(tested_function.cache_contains_key(tested_function.cache_make_key((), {'keyword': 10})))
+            self.assertTrue(tested_function.cache_contains_result(1))
+            tested_function(50, 2, 3, 4, keyword1=5, keyword2=6)
+            self.assertTrue(tested_function.cache_contains_argument([(50, 2, 3, 4), {'keyword1': 5, 'keyword2': 6}]))
+            self.assertTrue(tested_function.cache_contains_key(tested_function.cache_make_key((50, 2, 3, 4), {'keyword1': 5, 'keyword2': 6})))
+            self.assertTrue(tested_function.cache_contains_result(50))
+
+            time.sleep(0.6)  # wait until the cache expires
+            self.assertFalse(tested_function.cache_contains_argument((100,), alive_only=True))
+            self.assertFalse(tested_function.cache_contains_key(tested_function.cache_make_key((100,), None), alive_only=True))
+            self.assertFalse(tested_function.cache_contains_result(100, alive_only=True))
+
+            self.assertFalse(tested_function.cache_contains_argument({'keyword': 10}, alive_only=True))
+            self.assertFalse(tested_function.cache_contains_key(tested_function.cache_make_key((), {'keyword': 10}), alive_only=True))
+            self.assertFalse(tested_function.cache_contains_result(1, alive_only=True))
+
+            self.assertFalse(tested_function.cache_contains_argument([(50, 2, 3, 4), {'keyword1': 5, 'keyword2': 6}], alive_only=True))
+            self.assertFalse(tested_function.cache_contains_key(tested_function.cache_make_key((50, 2, 3, 4), {'keyword1': 5, 'keyword2': 6}), alive_only=True))
+            self.assertFalse(tested_function.cache_contains_result(50, alive_only=True))
+
+    def test_memoization_for_cache_remove_if(self):
+        for tested_function in (f33, f34, f35, f36):
+
+            def always_false(cache_key, cache_result, is_alive):
+                return False
+
+            def argument_is_42(cache_key, cache_result, is_alive):
+                target_key = tested_function.cache_make_key((42,), None)
+                return target_key == cache_key
+
+            def result_contain_42(cache_key, cache_result, is_alive):
+                for item in cache_result:
+                    if item == 42:
+                        return True
+                return False
+
+            def is_dead(cache_key, cache_result, is_alive):
+                return not is_alive
+
+            tested_function(1)
+            tested_function(42)
+            tested_function(c=42)
+
+            tested_function.cache_remove_if(always_false)
+            self.assertTrue(tested_function.cache_contains_argument((1,)))
+            self.assertTrue(tested_function.cache_contains_argument((42,)))
+            self.assertTrue(tested_function.cache_contains_argument({'c': 42}))
+
+            tested_function.cache_remove_if(argument_is_42)
+            self.assertTrue(tested_function.cache_contains_argument((1,)))
+            self.assertFalse(tested_function.cache_contains_argument((42,)))
+            self.assertTrue(tested_function.cache_contains_argument({'c': 42}))
+
+            tested_function(1)
+            tested_function(42)
+            tested_function(c=42)
+
+            tested_function.cache_remove_if(result_contain_42)
+            self.assertTrue(tested_function.cache_contains_argument((1,)))
+            self.assertFalse(tested_function.cache_contains_argument((42,)))
+            self.assertFalse(tested_function.cache_contains_argument({'c': 42}))
+
+            time.sleep(0.6)  # wait until cache expires
+
+            tested_function(2)
+            tested_function.cache_remove_if(is_dead)
+            self.assertFalse(tested_function.cache_contains_argument((1,), alive_only=True))
+            self.assertFalse(tested_function.cache_contains_argument((42,), alive_only=True))
+            self.assertFalse(tested_function.cache_contains_argument({'c': 42}, alive_only=True))
+            self.assertTrue(tested_function.cache_contains_argument((2,), alive_only=True))
+
     def _general_test(self, tested_function, algorithm, hits, misses, in_cache, not_in_cache):
         # clear
         exec_times[tested_function.__name__] = 0
         tested_function.cache_clear()
+        self.assertTrue(tested_function.cache_is_empty())
+        self.assertFalse(tested_function.cache_is_full())
 
         for i in range(20):
             tested_function(i)
         tested_function(99)
+
+        self.assertTrue(tested_function.cache_is_full())
+        self.assertFalse(tested_function.cache_is_empty())
 
         self.assertEqual(exec_times[tested_function.__name__], 21)
         info = tested_function.cache_info()
@@ -445,9 +577,16 @@ class TestMemoization(unittest.TestCase):
         self.assertEqual(info.misses, 21)
         self.assertEqual(info.current_size, 5)
 
-        keys = [make_key((x,), None) for x in (99, 19, 18, 17, 16)]
+        results = (99, 19, 18, 17, 16)
+        arguments = [(x,) for x in results]
+        for argument in arguments:
+            self.assertTrue(tested_function.cache_contains_argument(argument))
+        keys = [tested_function.cache_make_key(x, None) for x in arguments]
         for key in keys:
             self.assertIn(key, tested_function._cache)
+            self.assertTrue(tested_function.cache_contains_key(key))
+        for result in results:
+            self.assertTrue(tested_function.cache_contains_result(result))
 
         # 10 consecutive calls here
         tested_function(16)
@@ -467,10 +606,11 @@ class TestMemoization(unittest.TestCase):
         self.assertEqual(info.misses, misses)
         self.assertEqual(info.current_size, 5)
 
-        keys = [make_key((x,), None) for x in in_cache]
+        keys = [tested_function.cache_make_key((x,), None) for x in in_cache]
         for key in keys:
             self.assertIn(key, tested_function._cache)
-        keys = [make_key((x,), None) for x in chain(not_in_cache, range(0, 15))]
+            self.assertTrue(tested_function.cache_contains_key(key))
+        keys = [tested_function.cache_make_key((x,), None) for x in chain(not_in_cache, range(0, 15))]
         for key in keys:
             self.assertNotIn(key, tested_function._cache)
 
@@ -508,8 +648,9 @@ class TestMemoization(unittest.TestCase):
         self.assertGreaterEqual(info.misses, 5)
         self.assertEqual(info.current_size, 5)
 
-        for key in [make_key((x,), None) for x in range(5)]:
+        for key in [tested_function.cache_make_key((x,), None) for x in range(5)]:
             self.assertIn(key, tested_function._cache)
+            self.assertTrue(tested_function.cache_contains_key(key))
 
         # Test can-miss
         def run_can_miss():
@@ -536,24 +677,35 @@ class TestMemoization(unittest.TestCase):
         self._general_test(tested_function=tested_function, algorithm=CachingAlgorithmFlag.FIFO, hits=7, misses=24,
                            in_cache=(16, 100, 15, 99, 19), not_in_cache=(18, 17))
         self.assertEqual(exec_times[tested_function.__name__], 24)
-        caching_key_list = [item[0] for item in tested_function._get_caching_list()]
-        self.assertEqual(caching_key_list, [[16], [100], [15], [99], [19]])
+        self._cache_for_each_test(tested_function, [[16], [100], [15], [99], [19]])
 
     def _lru_test(self, tested_function):
         self._general_test(tested_function=tested_function, algorithm=CachingAlgorithmFlag.LRU, hits=7, misses=24,
                            in_cache=(16, 100, 15, 19, 18), not_in_cache=(99, 17))
         self.assertEqual(exec_times[tested_function.__name__], 24)
-        caching_key_list = [item[0] for item in tested_function._get_caching_list()]
-        self.assertEqual(caching_key_list, [[16], [100], [15], [19], [18]])
+        self._cache_for_each_test(tested_function, [[16], [100], [15], [19], [18]])
 
     def _lfu_test(self, tested_function):
         self._general_test(tested_function=tested_function, algorithm=CachingAlgorithmFlag.LFU, hits=8, misses=23,
                            in_cache=(18, 17, 16, 19, 100), not_in_cache=(99, 15))
         self.assertEqual(exec_times[tested_function.__name__], 23)
-        caching_key_list = [item[0] for item in tested_function._get_caching_list()]
-        self.assertEqual(caching_key_list, [[16], [18], [17], [19], [100]])
+        self._cache_for_each_test(tested_function, [[16], [18], [17], [19], [100]])
+
+    def _cache_for_each_test(self, tested_function, expected_key_list):
+        cache_collected = []
+
+        def collect(key, value, is_alive):
+            cache_collected.append((key, value, is_alive))
+
+        tested_function.cache_for_each(collect)
+        for item in cache_collected:
+            self.assertEqual(item[2], True)
+        self.assertEqual([item[0] for item in cache_collected], [key for key in expected_key_list])
 
     def _check_empty_cache_after_clearing(self, tested_function):
+        self.assertTrue(tested_function.cache_is_empty())
+        self.assertFalse(tested_function.cache_is_full())
+
         info = tested_function.cache_info()
         self.assertEqual(info.hits, 0)
         self.assertEqual(info.misses, 0)
@@ -586,7 +738,7 @@ class TestMemoization(unittest.TestCase):
             else:
                 tested_function(arg, **kwargs)
 
-        key = make_key((arg,), kwargs)
+        key = tested_function.cache_make_key((arg,), kwargs)
         call_tested_function(arg, kwargs)
 
         info = tested_function.cache_info()
@@ -594,6 +746,7 @@ class TestMemoization(unittest.TestCase):
         self.assertEqual(info.misses, 1)
         self.assertEqual(info.current_size, 1)
         self.assertIn(key, tested_function._cache)
+        self.assertTrue(tested_function.cache_contains_key(key))
 
         call_tested_function(arg, kwargs)  # this WILL NOT call the tested function
 
@@ -602,6 +755,7 @@ class TestMemoization(unittest.TestCase):
         self.assertEqual(info.misses, 1)
         self.assertEqual(info.current_size, 1)
         self.assertIn(key, tested_function._cache)
+        self.assertTrue(tested_function.cache_contains_key(key))
         self.assertEqual(exec_times[tested_function.__name__], 1)
 
         time.sleep(0.6)  # wait until the cache expires
@@ -616,6 +770,7 @@ class TestMemoization(unittest.TestCase):
         self.assertEqual(info.misses, 2)
         self.assertEqual(info.current_size, 1)
         self.assertIn(key, tested_function._cache)
+        self.assertTrue(tested_function.cache_contains_key(key))
         self.assertEqual(exec_times[tested_function.__name__], 2)
 
         # The previous call should have been cached, so it must not call the function again
@@ -626,6 +781,7 @@ class TestMemoization(unittest.TestCase):
         self.assertEqual(info.misses, 2)
         self.assertEqual(info.current_size, 1)
         self.assertIn(key, tested_function._cache)
+        self.assertTrue(tested_function.cache_contains_key(key))
         self.assertEqual(exec_times[tested_function.__name__], 2)
 
     def _general_ttl_kwargs_test(self, tested_function):
@@ -638,9 +794,10 @@ class TestMemoization(unittest.TestCase):
             exec_times[tested_function.__name__] = 0
             tested_function.cache_clear()
 
-            key = make_key((arg,), None)
+            key = tested_function.cache_make_key((arg,), None)
             tested_function(arg)
             self.assertIn(key, tested_function._cache)
+            self.assertTrue(tested_function.cache_contains_key(key))
 
             if isinstance(arg, list):
                 arg.append(0)
@@ -648,9 +805,10 @@ class TestMemoization(unittest.TestCase):
                 arg['foo'] = 'bar'
             else:
                 raise TypeError
-            key = make_key((arg,), None)
+            key = tested_function.cache_make_key((arg,), None)
             tested_function(arg)
             self.assertIn(key, tested_function._cache)
+            self.assertTrue(tested_function.cache_contains_key(key))
 
             if isinstance(arg, list):
                 arg.pop()
@@ -658,9 +816,10 @@ class TestMemoization(unittest.TestCase):
                 del arg['foo']
             else:
                 raise TypeError
-            key = make_key((arg,), None)
+            key = tested_function.cache_make_key((arg,), None)
             tested_function(arg)
             self.assertIn(key, tested_function._cache)
+            self.assertTrue(tested_function.cache_contains_key(key))
 
             self.assertEqual(exec_times[tested_function.__name__], 2)
             info = tested_function.cache_info()
@@ -695,6 +854,7 @@ class TestMemoization(unittest.TestCase):
                 custom_key_maker(a=50)]
         for key in keys:
             self.assertIn(key, tested_function._cache)
+            self.assertTrue(tested_function.cache_contains_key(key))
 
 
 if __name__ == '__main__':

@@ -21,3 +21,15 @@ class CacheInfo:
     thread_safe: bool
     order_independent: bool
     use_custom_key: bool
+    def __init__(
+            self,
+            hits: int,
+            misses: int,
+            current_size: int,
+            max_size: Optional[int],
+            algorithm: int,
+            ttl: Optional[float],
+            thread_safe: bool,
+            order_independent: bool,
+            use_custom_key: bool,
+    ): ...

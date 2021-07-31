@@ -225,12 +225,27 @@ With ```cache_info```, you can retrieve the number of ```hits``` and ```misses``
 - Clear the cache by ```f.cache_clear()```.
 - Disable `SyntaxWarning` by ```memoization.suppress_warnings()```.
 
+## Q&A
+
+1. **Q: There are duplicated code in `memoization` and most of them can be eliminated by using another level of
+abstraction (e.g. classes and multiple inheritance). Why not refactor?**
+
+   A: We would like to keep the code in a proper level of abstraction. However, these abstractions make it run slower.
+As this is a caching library focusing on speed, we have to give up some elegance for better performance. We consider
+refactoring for better code maintainability while keeping good performance as a future work.
+
+
+2. **Q: I have submitted an issue and not received a reply for a long time. Anyone can help me?**
+
+   A: Sorry! We are not working full-time, but working voluntarily on this project, so you might experience some delay.
+We appreciate your patience.
+
 
 ## Contributing
 
 This project welcomes contributions from anyone.
 - [Read Contributing Guidance](https://github.com/lonelyenvoy/python-memoization/blob/master/CONTRIBUTING.md) first.
-- [Submit bugs](https://github.com/lonelyenvoy/python-memoization/issues) and help me verify fixes.
+- [Submit bugs](https://github.com/lonelyenvoy/python-memoization/issues) and help us verify fixes.
 - [Submit pull requests](https://github.com/lonelyenvoy/python-memoization/pulls) for bug fixes and features and discuss existing proposals. Please make sure that your PR passes the tests in ```test.py```.
 - [See contributors](https://github.com/lonelyenvoy/python-memoization/blob/master/CONTRIBUTORS.md) of this project.
 

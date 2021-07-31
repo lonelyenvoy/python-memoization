@@ -46,20 +46,21 @@ def validate():
             wrapper = cache_toolkit.get_caching_wrapper(
                 user_function=undecorated_tested_function, max_size=5, ttl=0.5, algorithm=member,
                 thread_safe=True, order_independent=False, custom_key_maker=None)
+
             if not hasattr(wrapper, 'cache_info'):
                 has_cache_info = False
                 _error('Cannot find cache_info function in the cache wrapper of <{}>\n'
                                  .format(cache_toolkit.__name__))
-            if not callable(wrapper.cache_info):
+            elif not callable(wrapper.cache_info):
                 has_cache_info = False
                 _error('Expected cache_info of wrapper of <{}> to be callable\n'
                                  .format(cache_toolkit.__name__))
-            if not hasattr(wrapper, 'cache_clear'):
-                _error('Cannot find cache_clear function in the cache wrapper of <{}>\n'
-                                 .format(cache_toolkit.__name__))
-            if not callable(wrapper.cache_clear):
-                _error('Expected cache_clear of wrapper of <{}> to be callable\n'
-                                 .format(cache_toolkit.__name__))
+
+            for function_name in (
+                    'cache_clear', 'cache_is_empty', 'cache_is_full', 'cache_contains_argument', 'cache_contains_key',
+                    'cache_contains_result', 'cache_for_each', 'cache_remove_if', 'cache_make_key',
+            ):
+                _expect_has_attribute_and_callable(wrapper, function_name, cache_toolkit.__name__)
 
             for x in range(0, 5):
                 tested_function(x)
@@ -84,6 +85,13 @@ def validate():
                         _error('Expected cache_info().ttl to be an integer or a float')
                     if not isinstance(info.thread_safe, bool):
                         _error('Expected cache_info().thread_safe to be a bool')
+
+
+def _expect_has_attribute_and_callable(wrapper, attribute_name, parent_object_name):
+    if not hasattr(wrapper, attribute_name):
+        _error('Cannot find {} function in the cache wrapper of <{}>\n'.format(attribute_name, parent_object_name))
+    elif not callable(getattr(wrapper, attribute_name)):
+        _error('Expected {} of wrapper of <{}> to be callable\n'.format(attribute_name, parent_object_name))
 
 
 def _error(message):

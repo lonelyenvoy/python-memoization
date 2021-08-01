@@ -704,6 +704,19 @@ class TestMemoization(unittest.TestCase):
             self.assertEqual(item[2], True)
         self.assertEqual([item[0] for item in cache_collected], [argument for argument in expected_argument_list])
 
+        actual_argument_list = []
+        for argument in tested_function.cache_arguments():
+            actual_argument_list.append(argument)
+        self.assertEqual(list(tested_function.cache_arguments()), expected_argument_list)
+        self.assertEqual(actual_argument_list, expected_argument_list)
+
+        expected_result_list = [argument[0][0] for argument in expected_argument_list]
+        actual_result_list = []
+        for result in tested_function.cache_results():
+            actual_result_list.append(result)
+        self.assertEqual(list(tested_function.cache_results()), expected_result_list)
+        self.assertEqual(actual_result_list, expected_result_list)
+
     def _check_empty_cache_after_clearing(self, tested_function):
         self.assertTrue(tested_function.cache_is_empty())
         self.assertFalse(tested_function.cache_is_full())

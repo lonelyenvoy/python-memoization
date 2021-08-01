@@ -230,6 +230,9 @@ With ```cache_info```, you can retrieve the number of ```hits``` and ```misses``
 
 ## Advanced API References
 
+<details>
+<summary>Details</summary>
+
 ### Checking whether the cache contains something
 
 #### cache_contains_argument(function_arguments, alive_only)
@@ -380,6 +383,7 @@ Remove all cache elements that satisfy the given predicate
 :return:                    True if at least one element is removed, False otherwise.
 ```
 
+</details>
 
 ## Q&A
 

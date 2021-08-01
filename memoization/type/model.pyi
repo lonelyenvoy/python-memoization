@@ -118,7 +118,7 @@ class CachedFunction(Protocol[T]):
         """
 
     def cache_items(self) -> Iterable[Tuple[Tuple[Tuple, Dict], Any]]:
-                """
+        """
         Get cache items, i.e. entries of all alive cache elements, in the form of (argument, result).
 
         argument: a tuple containing a tuple (positional arguments) and a dict (keyword arguments).

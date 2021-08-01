@@ -13,7 +13,7 @@ If you like this work, please [star](https://github.com/lonelyenvoy/python-memoi
 ## Why choose this library?
 
 Perhaps you know about [```functools.lru_cache```](https://docs.python.org/3/library/functools.html#functools.lru_cache)
-in Python 3, and you may be wondering why I am reinventing the wheel.
+in Python 3, and you may be wondering why we are reinventing the wheel.
 
 Well, actually not. This lib is based on ```functools```. Please find below the comparison with ```lru_cache```.
 
@@ -30,7 +30,8 @@ Well, actually not. This lib is based on ```functools```. Please find below the 
 |TTL (Time-To-Live) support|No support|✔️|
 |Support for unhashable arguments (dict, list, etc.)|No support|✔️|
 |Custom cache keys|No support|✔️|
-|Partial cache clearing|No support|Pending implementation in v0.3.x|
+|On-demand partial cache clearing|No support|✔️|
+|Iterating through the cache|No support|✔️|
 |Python version|3.2+|3.4+|
 
 ```memoization``` solves some drawbacks of ```functools.lru_cache```:
@@ -58,7 +59,7 @@ TypeError: unhashable type: 'list'
 ```python
 >>> hash((1,))
 3430019387558
->>> hash(3430019387558.0)  # two different arguments have an identical hash value
+>>> hash(3430019387558.0)  # two different arguments with an identical hash value
 3430019387558
 ```
 
@@ -186,7 +187,7 @@ Example:
 
 ```python
 def get_employee_id(employee):
-    return employee.id
+    return employee.id  # returns a string or a integer
 
 @cached(custom_key_maker=get_employee_id)
 def calculate_performance(employee):
@@ -221,9 +222,163 @@ With ```cache_info```, you can retrieve the number of ```hits``` and ```misses``
 
 ### Other APIs
 
-- Access the original function ```f``` by ```f.__wrapped__```.
-- Clear the cache by ```f.cache_clear()```.
-- Disable `SyntaxWarning` by ```memoization.suppress_warnings()```.
+- Access the original undecorated function `f` by `f.__wrapped__`.
+- Check whether the cache is empty by `f.cache_is_empty()`.
+- Check whether the cache is full by `f.cache_is_full()`.
+- Disable `SyntaxWarning` by `memoization.suppress_warnings()`.
+
+## Advanced API References
+
+### Checking whether the cache contains something
+
+#### cache_contains_argument(function_arguments, alive_only)
+
+```
+Return True if the cache contains a cached item with the specified function call arguments
+
+:param function_arguments:  Can be a list, a tuple or a dict.
+                            - Full arguments: use a list to represent both positional arguments and keyword
+                              arguments. The list contains two elements, a tuple (positional arguments) and
+                              a dict (keyword arguments). For example,
+                                f(1, 2, 3, a=4, b=5, c=6)
+                              can be represented by:
+                                [(1, 2, 3), {'a': 4, 'b': 5, 'c': 6}]
+                            - Positional arguments only: when the arguments does not include keyword arguments,
+                              a tuple can be used to represent positional arguments. For example,
+                                f(1, 2, 3)
+                              can be represented by:
+                                (1, 2, 3)
+                            - Keyword arguments only: when the arguments does not include positional arguments,
+                              a dict can be used to represent keyword arguments. For example,
+                                f(a=4, b=5, c=6)
+                              can be represented by:
+                                {'a': 4, 'b': 5, 'c': 6}
+
+:param alive_only:          Whether to check alive cache item only (default to True).
+
+:return:                    True if the desired cached item is present, False otherwise.
+```
+
+#### cache_contains_result(return_value, alive_only)
+
+```
+Return True if the cache contains a cache item with the specified user function return value. O(n) time
+complexity.
+
+:param return_value:        A return value coming from the user function.
+
+:param alive_only:          Whether to check alive cache item only (default to True).
+
+:return:                    True if the desired cached item is present, False otherwise.
+```
+
+### Iterating through the cache
+
+#### cache_arguments()
+
+```
+Get user function arguments of all alive cache elements
+
+see also: cache_items()
+
+Example:
+   @cached
+   def f(a, b, c, d):
+       ...
+   f(1, 2, c=3, d=4)
+   for argument in f.cache_arguments():
+       print(argument)  # ((1, 2), {'c': 3, 'd': 4})
+
+:return: an iterable which iterates through a list of a tuple containing a tuple (positional arguments) and
+        a dict (keyword arguments)
+```
+
+#### cache_results()
+
+```
+Get user function return values of all alive cache elements
+
+see also: cache_items()
+
+Example:
+   @cached
+   def f(a):
+       return a
+   f('hello')
+   for result in f.cache_results():
+       print(result)  # 'hello'
+
+:return: an iterable which iterates through a list of user function result (of any type)
+```
+
+#### cache_items()
+
+```
+Get cache items, i.e. entries of all alive cache elements, in the form of (argument, result).
+
+argument: a tuple containing a tuple (positional arguments) and a dict (keyword arguments).
+result: a user function return value of any type.
+
+see also: cache_arguments(), cache_results().
+
+Example:
+   @cached
+   def f(a, b, c, d):
+       return 'the answer is ' + str(a)
+   f(1, 2, c=3, d=4)
+   for argument, result in f.cache_items():
+       print(argument)  # ((1, 2), {'c': 3, 'd': 4})
+       print(result)    # 'the answer is 1'
+
+:return: an iterable which iterates through a list of (argument, result) entries
+```
+
+#### cache_for_each()
+
+```
+Perform the given action for each cache element in an order determined by the algorithm until all
+elements have been processed or the action throws an error
+
+:param consumer:           an action function to process the cache elements. Must have 3 arguments:
+                             def consumer(user_function_arguments, user_function_result, is_alive): ...
+                           user_function_arguments is a tuple holding arguments in the form of (args, kwargs).
+                             args is a tuple holding positional arguments.
+                             kwargs is a dict holding keyword arguments.
+                             for example, for a function: foo(a, b, c, d), calling it by: foo(1, 2, c=3, d=4)
+                             user_function_arguments == ((1, 2), {'c': 3, 'd': 4})
+                           user_function_result is a return value coming from the user function.
+                           is_alive is a boolean value indicating whether the cache is still alive
+                           (if a TTL is given).
+```
+
+### Removing something from the cache
+
+#### cache_clear()
+
+```
+Clear the cache and its statistics information
+```
+
+#### cache_remove_if(predicate)
+
+```
+Remove all cache elements that satisfy the given predicate
+
+:param predicate:           a predicate function to judge whether the cache elements should be removed. Must
+                            have 3 arguments, and returns True or False:
+                              def consumer(user_function_arguments, user_function_result, is_alive): ...
+                            user_function_arguments is a tuple holding arguments in the form of (args, kwargs).
+                              args is a tuple holding positional arguments.
+                              kwargs is a dict holding keyword arguments.
+                              for example, for a function: foo(a, b, c, d), calling it by: foo(1, 2, c=3, d=4)
+                              user_function_arguments == ((1, 2), {'c': 3, 'd': 4})
+                            user_function_result is a return value coming from the user function.
+                            is_alive is a boolean value indicating whether the cache is still alive
+                            (if a TTL is given).
+
+:return:                    True if at least one element is removed, False otherwise.
+```
+
 
 ## Q&A
 
@@ -231,8 +386,8 @@ With ```cache_info```, you can retrieve the number of ```hits``` and ```misses``
 abstraction (e.g. classes and multiple inheritance). Why not refactor?**
 
    A: We would like to keep the code in a proper level of abstraction. However, these abstractions make it run slower.
-As this is a caching library focusing on speed, we have to give up some elegance for better performance. We consider
-refactoring for better code maintainability while keeping good performance as a future work.
+As this is a caching library focusing on speed, we have to give up some elegance for better performance. Refactoring
+is our future work.
 
 
 2. **Q: I have submitted an issue and not received a reply for a long time. Anyone can help me?**
@@ -258,8 +413,8 @@ This project welcomes contributions from anyone.
 [pythonsvg]: https://img.shields.io/pypi/pyversions/memoization.svg
 [python]: https://www.python.org
 
-[travismaster]: https://travis-ci.org/lonelyenvoy/python-memoization.svg?branch=master
-[travis]: https://travis-ci.org/lonelyenvoy/python-memoization
+[travismaster]: https://travis-ci.com/lonelyenvoy/python-memoization.svg?branch=master
+[travis]: https://travis-ci.com/lonelyenvoy/python-memoization
 
 [coverallssvg]: https://coveralls.io/repos/github/lonelyenvoy/python-memoization/badge.svg?branch=master
 [coveralls]: https://coveralls.io/github/lonelyenvoy/python-memoization?branch=master

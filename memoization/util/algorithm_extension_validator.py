@@ -57,8 +57,8 @@ def validate():
                                  .format(cache_toolkit.__name__))
 
             for function_name in (
-                    'cache_clear', 'cache_is_empty', 'cache_is_full', 'cache_contains_argument', 'cache_contains_key',
-                    'cache_contains_result', 'cache_for_each', 'cache_remove_if', 'cache_make_key',
+                    'cache_clear', 'cache_is_empty', 'cache_is_full', 'cache_contains_argument',
+                    'cache_contains_result', 'cache_for_each', 'cache_remove_if',
             ):
                 _expect_has_attribute_and_callable(wrapper, function_name, cache_toolkit.__name__)
 

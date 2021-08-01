@@ -10,7 +10,7 @@ from memoization.config.algorithm_mapping import get_cache_toolkit
 
 # Public symbols
 __all__ = ['cached', 'suppress_warnings', 'CachingAlgorithmFlag']
-__version__ = '0.3.2'
+__version__ = '0.4.0'
 
 # Whether warnings are enabled
 _warning_enabled = True

@@ -196,6 +196,8 @@ def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe, or
         """
         Get user function arguments of all alive cache elements
 
+        see also: cache_items()
+
         Example:
             @cached
             def f(a, b, c, d):
@@ -204,8 +206,8 @@ def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe, or
             for argument in f.cache_arguments():
                 print(argument)  # ((1, 2), {'c': 3, 'd': 4})
 
-        :return: a generator which generates a list of a tuple containing a tuple (positional arguments) and a dict
-                 (keyword arguments)
+        :return: an iterable which iterates through a list of a tuple containing a tuple (positional arguments) and
+                 a dict (keyword arguments)
         """
         with lock:
             freq_node = lfu_freq_list_root.prev
@@ -222,6 +224,8 @@ def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe, or
         """
         Get user function return values of all alive cache elements
 
+        see also: cache_items()
+
         Example:
             @cached
             def f(a):
@@ -230,7 +234,7 @@ def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe, or
             for result in f.cache_results():
                 print(result)  # 'hello'
 
-        :return: a generator which generates a list of user function result (of any type)
+        :return: an iterable which iterates through a list of user function result (of any type)
         """
         with lock:
             freq_node = lfu_freq_list_root.prev
@@ -240,6 +244,38 @@ def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe, or
                 while cache_node != cache_head:
                     if values_toolkit.is_cache_value_valid(cache_node.value):
                         yield values_toolkit.retrieve_result_from_cache_value(cache_node.value)
+                    cache_node = cache_node.next
+                freq_node = freq_node.prev
+
+    def cache_items():
+        """
+        Get cache items, i.e. entries of all alive cache elements, in the form of (argument, result).
+
+        argument: a tuple containing a tuple (positional arguments) and a dict (keyword arguments).
+        result: a user function return value of any type.
+
+        see also: cache_arguments(), cache_results().
+
+        Example:
+            @cached
+            def f(a, b, c, d):
+                return 'the answer is ' + str(a)
+            f(1, 2, c=3, d=4)
+            for argument, result in f.cache_items():
+                print(argument)  # ((1, 2), {'c': 3, 'd': 4})
+                print(result)    # 'the answer is 1'
+
+        :return: an iterable which iterates through a list of (argument, result) entries
+        """
+        with lock:
+            freq_node = lfu_freq_list_root.prev
+            while freq_node != lfu_freq_list_root:
+                cache_head = freq_node.cache_head
+                cache_node = cache_head.next
+                while cache_node != cache_head:
+                    if values_toolkit.is_cache_value_valid(cache_node.value):
+                        yield (key_argument_map[cache_node.key],
+                               values_toolkit.retrieve_result_from_cache_value(cache_node.value))
                     cache_node = cache_node.next
                 freq_node = freq_node.prev
 
@@ -305,6 +341,7 @@ def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe, or
     wrapper.cache_for_each = cache_for_each
     wrapper.cache_arguments = cache_arguments
     wrapper.cache_results = cache_results
+    wrapper.cache_items = cache_items
     wrapper.cache_remove_if = cache_remove_if
     wrapper._cache = cache
     wrapper._lfu_root = lfu_freq_list_root

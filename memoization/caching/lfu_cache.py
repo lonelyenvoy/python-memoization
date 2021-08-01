@@ -13,6 +13,7 @@ def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe, or
     """
 
     cache = {}                                                  # the cache to store function results
+    key_argument_map = {}                                       # mapping from cache keys to user function arguments
     sentinel = object()                                         # sentinel object for the default value of map.get
     hits = misses = 0                                           # hits and misses of the cache
     lock = RLock() if thread_safe else DummyWithable()          # ensure thread-safe
@@ -56,7 +57,9 @@ def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe, or
                     # no need to add again
                     pass
             else:
-                _insert_into_lfu_cache(cache, key, values_toolkit.make_cache_value(result, ttl),
+                user_function_arguments = (args, kwargs)
+                cache_value = values_toolkit.make_cache_value(result, ttl)
+                _insert_into_lfu_cache(cache, key_argument_map, user_function_arguments, key, cache_value,
                                        lfu_freq_list_root, max_size)
         return result
 
@@ -67,6 +70,7 @@ def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe, or
         nonlocal hits, misses, lfu_freq_list_root
         with lock:
             cache.clear()
+            key_argument_map.clear()
             hits = misses = 0
             lfu_freq_list_root.prev = lfu_freq_list_root.next = lfu_freq_list_root
 
@@ -181,8 +185,13 @@ def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe, or
         elements have been processed or the action throws an error
 
         :param consumer:            an action function to process the cache elements. Must have 3 arguments:
-                                      def consumer(cache_key, cache_result, is_alive): ...
-                                    cache_key is built by the default key maker or a custom key maker.
+                                      def consumer(user_function_arguments, user_function_result, is_alive): ...
+                                    user_function_arguments is a tuple holding arguments in the form of (args, kwargs).
+                                      args is a tuple holding positional arguments.
+                                      kwargs is a dict holding keyword arguments.
+                                      for example, for a function: foo(a, b, c, d), calling it by: foo(1, 2, c=3, d=4)
+                                      user_function_arguments == ((1, 2), {'c': 3, 'd': 4})
+                                    user_function_result is a return value coming from the user function.
                                     cache_result is a return value coming from the user function.
                                     is_alive is a boolean value indicating whether the cache is still alive
                                     (if a TTL is given).
@@ -194,8 +203,9 @@ def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe, or
                 cache_node = cache_head.next
                 while cache_node != cache_head:
                     is_alive = values_toolkit.is_cache_value_valid(cache_node.value)
-                    cache_result = values_toolkit.retrieve_result_from_cache_value(cache_node.value)
-                    consumer(cache_node.key, cache_result, is_alive)
+                    user_function_result = values_toolkit.retrieve_result_from_cache_value(cache_node.value)
+                    user_function_arguments = key_argument_map[cache_node.key]
+                    consumer(user_function_arguments, user_function_result, is_alive)
                     cache_node = cache_node.next
                 freq_node = freq_node.prev
 
@@ -205,8 +215,13 @@ def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe, or
 
         :param predicate:           a predicate function to judge whether the cache elements should be removed. Must
                                     have 3 arguments:
-                                      def consumer(cache_key, cache_result, is_alive): ...
-                                    cache_key is built by the default key maker or a custom key maker.
+                                      def consumer(user_function_arguments, user_function_result, is_alive): ...
+                                    user_function_arguments is a tuple holding arguments in the form of (args, kwargs).
+                                      args is a tuple holding positional arguments.
+                                      kwargs is a dict holding keyword arguments.
+                                      for example, for a function: foo(a, b, c, d), calling it by: foo(1, 2, c=3, d=4)
+                                      user_function_arguments == ((1, 2), {'c': 3, 'd': 4})
+                                    user_function_result is a return value coming from the user function.
                                     cache_result is a return value coming from the user function.
                                     is_alive is a boolean value indicating whether the cache is still alive
                                     (if a TTL is given).
@@ -222,11 +237,13 @@ def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe, or
                 removed_under_this_freq_node = False
                 while cache_node != cache_head:
                     is_alive = values_toolkit.is_cache_value_valid(cache_node.value)
-                    cache_result = values_toolkit.retrieve_result_from_cache_value(cache_node.value)
-                    if predicate(cache_node.key, cache_result, is_alive):
+                    user_function_result = values_toolkit.retrieve_result_from_cache_value(cache_node.value)
+                    user_function_arguments = key_argument_map[cache_node.key]
+                    if predicate(user_function_arguments, user_function_result, is_alive):
                         removed = removed_under_this_freq_node = True
                         next_cache_node = cache_node.next
                         del cache[cache_node.key]  # delete from cache
+                        del key_argument_map[cache_node.key]
                         cache_node.destroy()  # modify references, drop this cache node
                         cache_node = next_cache_node
                     else:
@@ -337,7 +354,7 @@ class _FreqNode(object):
         self.prev = self.next = self.cache_head = None
 
 
-def _insert_into_lfu_cache(cache, key, value, root, max_size):
+def _insert_into_lfu_cache(cache, key_argument_map, user_function_arguments, key, value, root, max_size):
     first_freq_node = root.next
     if cache.__len__() >= max_size:
         # The cache is full
@@ -372,6 +389,7 @@ def _insert_into_lfu_cache(cache, key, value, root, max_size):
 
             # Delete from cache
             del cache[old_key]
+            del key_argument_map[old_key]
 
             # Prepare a new frequency node, a cache root node and a cache data node
             empty_cache_root = _CacheNode.root()
@@ -410,6 +428,7 @@ def _insert_into_lfu_cache(cache, key, value, root, max_size):
 
             # Delete from cache
             del cache[old_key]
+            del key_argument_map[old_key]
     else:
         # The cache is not full
 
@@ -443,6 +462,7 @@ def _insert_into_lfu_cache(cache, key, value, root, max_size):
 
     # Finally, insert the data into the cache
     cache[key] = cache_node
+    key_argument_map[key] = user_function_arguments
 
 
 def _access_lfu_cache(cache, key, sentinel):

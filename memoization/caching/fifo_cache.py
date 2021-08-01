@@ -13,6 +13,7 @@ def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe, or
     """
 
     cache = {}                                                  # the cache to store function results
+    key_argument_map = {}                                       # mapping from cache keys to user function arguments
     sentinel = object()                                         # sentinel object for the default value of map.get
     hits = misses = 0                                           # hits and misses of the cache
     lock = RLock() if thread_safe else DummyWithable()          # ensure thread-safe
@@ -77,13 +78,16 @@ def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe, or
                 root[_KEY] = root[_VALUE] = None
                 # delete from cache
                 del cache[old_key]
+                del key_argument_map[old_key]
                 # save the result to the cache
                 cache[key] = old_root
+                key_argument_map[key] = (args, kwargs)
             else:
                 # add a node to the linked list
                 last = root[_PREV]
                 node = [last, root, key, values_toolkit.make_cache_value(result, ttl)]  # new node
                 cache[key] = root[_PREV] = last[_NEXT] = node  # save result to the cache
+                key_argument_map[key] = (args, kwargs)
                 # check whether the cache is full
                 full = (cache.__len__() >= max_size)
         return result
@@ -95,6 +99,7 @@ def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe, or
         nonlocal hits, misses, full
         with lock:
             cache.clear()
+            key_argument_map.clear()
             hits = misses = 0
             full = False
             root[:] = [root, root, None, None]
@@ -206,9 +211,13 @@ def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe, or
         elements have been processed or the action throws an error
 
         :param consumer:            an action function to process the cache elements. Must have 3 arguments:
-                                      def consumer(cache_key, cache_result, is_alive): ...
-                                    cache_key is built by the default key maker or a custom key maker.
-                                    cache_result is a return value coming from the user function.
+                                      def consumer(user_function_arguments, user_function_result, is_alive): ...
+                                    user_function_arguments is a tuple holding arguments in the form of (args, kwargs).
+                                      args is a tuple holding positional arguments.
+                                      kwargs is a dict holding keyword arguments.
+                                      for example, for a function: foo(a, b, c, d), calling it by: foo(1, 2, c=3, d=4)
+                                      user_function_arguments == ((1, 2), {'c': 3, 'd': 4})
+                                    user_function_result is a return value coming from the user function.
                                     is_alive is a boolean value indicating whether the cache is still alive
                                     (if a TTL is given).
         """
@@ -216,8 +225,9 @@ def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe, or
             node = root[_PREV]
             while node is not root:
                 is_alive = values_toolkit.is_cache_value_valid(node[_VALUE])
-                cache_result = values_toolkit.retrieve_result_from_cache_value(node[_VALUE])
-                consumer(node[_KEY], cache_result, is_alive)
+                user_function_result = values_toolkit.retrieve_result_from_cache_value(node[_VALUE])
+                user_function_arguments = key_argument_map[node[_KEY]]
+                consumer(user_function_arguments, user_function_result, is_alive)
                 node = node[_PREV]
 
     def cache_remove_if(predicate):
@@ -226,9 +236,13 @@ def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe, or
 
         :param predicate:           a predicate function to judge whether the cache elements should be removed. Must
                                     have 3 arguments:
-                                      def consumer(cache_key, cache_result, is_alive): ...
-                                    cache_key is built by the default key maker or a custom key maker.
-                                    cache_result is a return value coming from the user function.
+                                      def consumer(user_function_arguments, user_function_result, is_alive): ...
+                                    user_function_arguments is a tuple holding arguments in the form of (args, kwargs).
+                                      args is a tuple holding positional arguments.
+                                      kwargs is a dict holding keyword arguments.
+                                      for example, for a function: foo(a, b, c, d), calling it by: foo(1, 2, c=3, d=4)
+                                      user_function_arguments == ((1, 2), {'c': 3, 'd': 4})
+                                    user_function_result is a return value coming from the user function.
                                     is_alive is a boolean value indicating whether the cache is still alive
                                     (if a TTL is given).
 
@@ -240,8 +254,9 @@ def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe, or
             node = root[_PREV]
             while node is not root:
                 is_alive = values_toolkit.is_cache_value_valid(node[_VALUE])
-                cache_result = values_toolkit.retrieve_result_from_cache_value(node[_VALUE])
-                if predicate(node[_KEY], cache_result, is_alive):
+                user_function_result = values_toolkit.retrieve_result_from_cache_value(node[_VALUE])
+                user_function_arguments = key_argument_map[node[_KEY]]
+                if predicate(user_function_arguments, user_function_result, is_alive):
                     removed = True
                     node_prev = node[_PREV]
                     # relink pointers of node.prev.next and node.next.prev
@@ -252,6 +267,7 @@ def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe, or
                     node[_KEY] = node[_VALUE] = None
                     # delete from cache
                     del cache[key]
+                    del key_argument_map[key]
                     # check whether the cache is full
                     full = (cache.__len__() >= max_size)
                     node = node_prev

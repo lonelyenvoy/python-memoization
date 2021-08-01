@@ -13,6 +13,7 @@ def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe, or
     """
 
     cache = {}                                                  # the cache to store function results
+    key_argument_map = {}                                       # mapping from cache keys to user function arguments
     sentinel = object()                                         # sentinel object for the default value of map.get
     hits = misses = 0                                           # hits and misses of the cache
     lock = RLock() if thread_safe else DummyWithable()          # ensure thread-safe
@@ -44,6 +45,7 @@ def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe, or
                 misses += 1
             result = user_function(*args, **kwargs)
             cache[key] = values_toolkit.make_cache_value(result, ttl)
+            key_argument_map[key] = (args, kwargs)
             return result
 
     def cache_clear():
@@ -53,6 +55,7 @@ def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe, or
         nonlocal hits, misses
         with lock:
             cache.clear()
+            key_argument_map.clear()
             hits = misses = 0
 
     def cache_info():
@@ -160,8 +163,13 @@ def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe, or
         elements have been processed or the action throws an error
 
         :param consumer:            an action function to process the cache elements. Must have 3 arguments:
-                                      def consumer(cache_key, cache_result, is_alive): ...
-                                    cache_key is built by the default key maker or a custom key maker.
+                                      def consumer(user_function_arguments, user_function_result, is_alive): ...
+                                    user_function_arguments is a tuple holding arguments in the form of (args, kwargs).
+                                      args is a tuple holding positional arguments.
+                                      kwargs is a dict holding keyword arguments.
+                                      for example, for a function: foo(a, b, c, d), calling it by: foo(1, 2, c=3, d=4)
+                                      user_function_arguments == ((1, 2), {'c': 3, 'd': 4})
+                                    user_function_result is a return value coming from the user function.
                                     cache_result is a return value coming from the user function.
                                     is_alive is a boolean value indicating whether the cache is still alive
                                     (if a TTL is given).
@@ -169,8 +177,9 @@ def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe, or
         with lock:
             for key, value in cache.items():
                 is_alive = values_toolkit.is_cache_value_valid(value)
-                cache_result = values_toolkit.retrieve_result_from_cache_value(value)
-                consumer(key, cache_result, is_alive)
+                user_function_result = values_toolkit.retrieve_result_from_cache_value(value)
+                user_function_arguments = key_argument_map[key]
+                consumer(user_function_arguments, user_function_result, is_alive)
 
     def cache_remove_if(predicate):
         """
@@ -178,8 +187,13 @@ def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe, or
 
         :param predicate:           a predicate function to judge whether the cache elements should be removed. Must
                                     have 3 arguments:
-                                      def consumer(cache_key, cache_result, is_alive): ...
-                                    cache_key is built by the default key maker or a custom key maker.
+                                      def consumer(user_function_arguments, user_function_result, is_alive): ...
+                                    user_function_arguments is a tuple holding arguments in the form of (args, kwargs).
+                                      args is a tuple holding positional arguments.
+                                      kwargs is a dict holding keyword arguments.
+                                      for example, for a function: foo(a, b, c, d), calling it by: foo(1, 2, c=3, d=4)
+                                      user_function_arguments == ((1, 2), {'c': 3, 'd': 4})
+                                    user_function_result is a return value coming from the user function.
                                     cache_result is a return value coming from the user function.
                                     is_alive is a boolean value indicating whether the cache is still alive
                                     (if a TTL is given).
@@ -190,11 +204,13 @@ def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe, or
             keys_to_be_removed = []
             for key, value in cache.items():
                 is_alive = values_toolkit.is_cache_value_valid(value)
-                cache_result = values_toolkit.retrieve_result_from_cache_value(value)
-                if predicate(key, cache_result, is_alive):
+                user_function_result = values_toolkit.retrieve_result_from_cache_value(value)
+                user_function_arguments = key_argument_map[key]
+                if predicate(user_function_arguments, user_function_result, is_alive):
                     keys_to_be_removed.append(key)
             for key in keys_to_be_removed:
                 del cache[key]
+                del key_argument_map[key]
             return len(keys_to_be_removed) > 0
 
     # expose operations and members of wrapper

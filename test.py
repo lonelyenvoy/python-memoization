@@ -513,20 +513,19 @@ class TestMemoization(unittest.TestCase):
     def test_memoization_for_cache_remove_if(self):
         for tested_function in (f33, f34, f35, f36):
 
-            def always_false(cache_key, cache_result, is_alive):
+            def always_false(user_function_arguments, user_function_result, is_alive):
                 return False
 
-            def argument_is_42(cache_key, cache_result, is_alive):
-                target_key = tested_function.cache_make_key((42,), None)
-                return target_key == cache_key
+            def argument_is_42(user_function_arguments, user_function_result, is_alive):
+                return user_function_arguments == ((42,), {})
 
-            def result_contain_42(cache_key, cache_result, is_alive):
-                for item in cache_result:
+            def result_contain_42(user_function_arguments, user_function_result, is_alive):
+                for item in user_function_result:
                     if item == 42:
                         return True
                 return False
 
-            def is_dead(cache_key, cache_result, is_alive):
+            def is_dead(user_function_arguments, user_function_result, is_alive):
                 return not is_alive
 
             tested_function(1)
@@ -692,30 +691,30 @@ class TestMemoization(unittest.TestCase):
         self._general_test(tested_function=tested_function, algorithm=CachingAlgorithmFlag.FIFO, hits=7, misses=24,
                            in_cache=(16, 100, 15, 99, 19), not_in_cache=(18, 17))
         self.assertEqual(exec_times[tested_function.__name__], 24)
-        self._cache_for_each_test(tested_function, [[16], [100], [15], [99], [19]])
+        self._cache_for_each_test(tested_function, [((16,), {}), ((100,), {}), ((15,), {}), ((99,), {}), ((19,), {})])
 
     def _lru_test(self, tested_function):
         self._general_test(tested_function=tested_function, algorithm=CachingAlgorithmFlag.LRU, hits=7, misses=24,
                            in_cache=(16, 100, 15, 19, 18), not_in_cache=(99, 17))
         self.assertEqual(exec_times[tested_function.__name__], 24)
-        self._cache_for_each_test(tested_function, [[16], [100], [15], [19], [18]])
+        self._cache_for_each_test(tested_function, [((16,), {}), ((100,), {}), ((15,), {}), ((19,), {}), ((18,), {})])
 
     def _lfu_test(self, tested_function):
         self._general_test(tested_function=tested_function, algorithm=CachingAlgorithmFlag.LFU, hits=8, misses=23,
                            in_cache=(18, 17, 16, 19, 100), not_in_cache=(99, 15))
         self.assertEqual(exec_times[tested_function.__name__], 23)
-        self._cache_for_each_test(tested_function, [[16], [18], [17], [19], [100]])
+        self._cache_for_each_test(tested_function, [((16,), {}), ((18,), {}), ((17,), {}), ((19,), {}), ((100,), {})])
 
-    def _cache_for_each_test(self, tested_function, expected_key_list):
+    def _cache_for_each_test(self, tested_function, expected_argument_list):
         cache_collected = []
 
-        def collect(key, value, is_alive):
-            cache_collected.append((key, value, is_alive))
+        def collect(arguments, value, is_alive):
+            cache_collected.append((arguments, value, is_alive))
 
         tested_function.cache_for_each(collect)
         for item in cache_collected:
             self.assertEqual(item[2], True)
-        self.assertEqual([item[0] for item in cache_collected], [key for key in expected_key_list])
+        self.assertEqual([item[0] for item in cache_collected], [argument for argument in expected_argument_list])
 
     def _check_empty_cache_after_clearing(self, tested_function):
         self.assertTrue(tested_function.cache_is_empty())

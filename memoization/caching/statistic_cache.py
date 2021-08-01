@@ -105,8 +105,13 @@ def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe, or
         elements have been processed or the action throws an error
 
         :param consumer:            an action function to process the cache elements. Must have 3 arguments:
-                                      def consumer(cache_key, cache_result, is_alive): ...
-                                    cache_key is built by the default key maker or a custom key maker.
+                                      def consumer(user_function_arguments, user_function_result, is_alive): ...
+                                    user_function_arguments is a tuple holding arguments in the form of (args, kwargs).
+                                      args is a tuple holding positional arguments.
+                                      kwargs is a dict holding keyword arguments.
+                                      for example, for a function: foo(a, b, c, d), calling it by: foo(1, 2, c=3, d=4)
+                                      user_function_arguments == ((1, 2), {'c': 3, 'd': 4})
+                                    user_function_result is a return value coming from the user function.
                                     cache_result is a return value coming from the user function.
                                     is_alive is a boolean value indicating whether the cache is still alive
                                     (if a TTL is given).
@@ -119,8 +124,13 @@ def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe, or
 
         :param predicate:           a predicate function to judge whether the cache elements should be removed. Must
                                     have 3 arguments:
-                                      def consumer(cache_key, cache_result, is_alive): ...
-                                    cache_key is built by the default key maker or a custom key maker.
+                                      def consumer(user_function_arguments, user_function_result, is_alive): ...
+                                    user_function_arguments is a tuple holding arguments in the form of (args, kwargs).
+                                      args is a tuple holding positional arguments.
+                                      kwargs is a dict holding keyword arguments.
+                                      for example, for a function: foo(a, b, c, d), calling it by: foo(1, 2, c=3, d=4)
+                                      user_function_arguments == ((1, 2), {'c': 3, 'd': 4})
+                                    user_function_result is a return value coming from the user function.
                                     cache_result is a return value coming from the user function.
                                     is_alive is a boolean value indicating whether the cache is still alive
                                     (if a TTL is given).

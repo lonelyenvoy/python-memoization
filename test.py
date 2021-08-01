@@ -10,6 +10,7 @@ import inspect
 import warnings
 
 from memoization import cached, suppress_warnings, CachingAlgorithmFlag
+from memoization.caching.general.keys_order_dependent import make_key
 
 exec_times = {}                   # executed time of each tested function
 lock = Lock()                     # for multi-threading tests
@@ -270,10 +271,9 @@ class TestMemoization(unittest.TestCase):
             self.assertEqual(info.misses, 2)
             self.assertEqual(info.current_size, 2)
         for f in f1, f2:
-            keys = f.cache_make_key((10,), None), f.cache_make_key((20,), None)
+            keys = make_key((10,), None), make_key((20,), None)
             for key in keys:
                 self.assertIn(key, f._cache)
-                self.assertTrue(f.cache_contains_key(key))
 
         f1.cache_clear()
         f2.cache_clear()
@@ -477,37 +477,28 @@ class TestMemoization(unittest.TestCase):
         for tested_function in (f29, f30, f31, f32):
             tested_function(100)
             self.assertTrue(tested_function.cache_contains_argument((100,)))
-            self.assertTrue(tested_function.cache_contains_key(tested_function.cache_make_key((100,), None)))
             self.assertTrue(tested_function.cache_contains_result(100))
             tested_function(keyword=10)
             self.assertTrue(tested_function.cache_contains_argument({'keyword': 10}))
-            self.assertTrue(tested_function.cache_contains_key(tested_function.cache_make_key((), {'keyword': 10})))
             self.assertTrue(tested_function.cache_contains_result(1))
             tested_function(50, 2, 3, 4, keyword1=5, keyword2=6)
             self.assertTrue(tested_function.cache_contains_argument([(50, 2, 3, 4), {'keyword1': 5, 'keyword2': 6}]))
-            self.assertTrue(tested_function.cache_contains_key(tested_function.cache_make_key((50, 2, 3, 4), {'keyword1': 5, 'keyword2': 6})))
             self.assertTrue(tested_function.cache_contains_result(50))
 
             time.sleep(0.6)  # wait until the cache expires
             self.assertFalse(tested_function.cache_contains_argument((100,), alive_only=True))
-            self.assertFalse(tested_function.cache_contains_key(tested_function.cache_make_key((100,), None), alive_only=True))
             self.assertFalse(tested_function.cache_contains_result(100, alive_only=True))
             self.assertTrue(tested_function.cache_contains_argument((100,), alive_only=False))
-            self.assertTrue(tested_function.cache_contains_key(tested_function.cache_make_key((100,), None), alive_only=False))
             self.assertTrue(tested_function.cache_contains_result(100, alive_only=False))
 
             self.assertFalse(tested_function.cache_contains_argument({'keyword': 10}, alive_only=True))
-            self.assertFalse(tested_function.cache_contains_key(tested_function.cache_make_key((), {'keyword': 10}), alive_only=True))
             self.assertFalse(tested_function.cache_contains_result(1, alive_only=True))
             self.assertTrue(tested_function.cache_contains_argument({'keyword': 10}, alive_only=False))
-            self.assertTrue(tested_function.cache_contains_key(tested_function.cache_make_key((), {'keyword': 10}), alive_only=False))
             self.assertTrue(tested_function.cache_contains_result(1, alive_only=False))
 
             self.assertFalse(tested_function.cache_contains_argument([(50, 2, 3, 4), {'keyword1': 5, 'keyword2': 6}], alive_only=True))
-            self.assertFalse(tested_function.cache_contains_key(tested_function.cache_make_key((50, 2, 3, 4), {'keyword1': 5, 'keyword2': 6}), alive_only=True))
             self.assertFalse(tested_function.cache_contains_result(50, alive_only=True))
             self.assertTrue(tested_function.cache_contains_argument([(50, 2, 3, 4), {'keyword1': 5, 'keyword2': 6}], alive_only=False))
-            self.assertTrue(tested_function.cache_contains_key(tested_function.cache_make_key((50, 2, 3, 4), {'keyword1': 5, 'keyword2': 6}), alive_only=False))
             self.assertTrue(tested_function.cache_contains_result(50, alive_only=False))
 
     def test_memoization_for_cache_remove_if(self):
@@ -595,10 +586,9 @@ class TestMemoization(unittest.TestCase):
         arguments = [(x,) for x in results]
         for argument in arguments:
             self.assertTrue(tested_function.cache_contains_argument(argument))
-        keys = [tested_function.cache_make_key(x, None) for x in arguments]
+        keys = [make_key(x, None) for x in arguments]
         for key in keys:
             self.assertIn(key, tested_function._cache)
-            self.assertTrue(tested_function.cache_contains_key(key))
         for result in results:
             self.assertTrue(tested_function.cache_contains_result(result))
 
@@ -620,11 +610,10 @@ class TestMemoization(unittest.TestCase):
         self.assertEqual(info.misses, misses)
         self.assertEqual(info.current_size, 5)
 
-        keys = [tested_function.cache_make_key((x,), None) for x in in_cache]
+        keys = [make_key((x,), None) for x in in_cache]
         for key in keys:
             self.assertIn(key, tested_function._cache)
-            self.assertTrue(tested_function.cache_contains_key(key))
-        keys = [tested_function.cache_make_key((x,), None) for x in chain(not_in_cache, range(0, 15))]
+        keys = [make_key((x,), None) for x in chain(not_in_cache, range(0, 15))]
         for key in keys:
             self.assertNotIn(key, tested_function._cache)
 
@@ -662,9 +651,8 @@ class TestMemoization(unittest.TestCase):
         self.assertGreaterEqual(info.misses, 5)
         self.assertEqual(info.current_size, 5)
 
-        for key in [tested_function.cache_make_key((x,), None) for x in range(5)]:
+        for key in [make_key((x,), None) for x in range(5)]:
             self.assertIn(key, tested_function._cache)
-            self.assertTrue(tested_function.cache_contains_key(key))
 
         # Test can-miss
         def run_can_miss():
@@ -752,7 +740,7 @@ class TestMemoization(unittest.TestCase):
             else:
                 tested_function(arg, **kwargs)
 
-        key = tested_function.cache_make_key((arg,), kwargs)
+        key = make_key((arg,), kwargs)
         call_tested_function(arg, kwargs)
 
         info = tested_function.cache_info()
@@ -760,7 +748,6 @@ class TestMemoization(unittest.TestCase):
         self.assertEqual(info.misses, 1)
         self.assertEqual(info.current_size, 1)
         self.assertIn(key, tested_function._cache)
-        self.assertTrue(tested_function.cache_contains_key(key))
 
         call_tested_function(arg, kwargs)  # this WILL NOT call the tested function
 
@@ -769,7 +756,6 @@ class TestMemoization(unittest.TestCase):
         self.assertEqual(info.misses, 1)
         self.assertEqual(info.current_size, 1)
         self.assertIn(key, tested_function._cache)
-        self.assertTrue(tested_function.cache_contains_key(key))
         self.assertEqual(exec_times[tested_function.__name__], 1)
 
         time.sleep(0.6)  # wait until the cache expires
@@ -784,7 +770,6 @@ class TestMemoization(unittest.TestCase):
         self.assertEqual(info.misses, 2)
         self.assertEqual(info.current_size, 1)
         self.assertIn(key, tested_function._cache)
-        self.assertTrue(tested_function.cache_contains_key(key))
         self.assertEqual(exec_times[tested_function.__name__], 2)
 
         # The previous call should have been cached, so it must not call the function again
@@ -795,7 +780,6 @@ class TestMemoization(unittest.TestCase):
         self.assertEqual(info.misses, 2)
         self.assertEqual(info.current_size, 1)
         self.assertIn(key, tested_function._cache)
-        self.assertTrue(tested_function.cache_contains_key(key))
         self.assertEqual(exec_times[tested_function.__name__], 2)
 
     def _general_ttl_kwargs_test(self, tested_function):
@@ -808,10 +792,9 @@ class TestMemoization(unittest.TestCase):
             exec_times[tested_function.__name__] = 0
             tested_function.cache_clear()
 
-            key = tested_function.cache_make_key((arg,), None)
+            key = make_key((arg,), None)
             tested_function(arg)
             self.assertIn(key, tested_function._cache)
-            self.assertTrue(tested_function.cache_contains_key(key))
 
             if isinstance(arg, list):
                 arg.append(0)
@@ -819,10 +802,9 @@ class TestMemoization(unittest.TestCase):
                 arg['foo'] = 'bar'
             else:
                 raise TypeError
-            key = tested_function.cache_make_key((arg,), None)
+            key = make_key((arg,), None)
             tested_function(arg)
             self.assertIn(key, tested_function._cache)
-            self.assertTrue(tested_function.cache_contains_key(key))
 
             if isinstance(arg, list):
                 arg.pop()
@@ -830,10 +812,9 @@ class TestMemoization(unittest.TestCase):
                 del arg['foo']
             else:
                 raise TypeError
-            key = tested_function.cache_make_key((arg,), None)
+            key = make_key((arg,), None)
             tested_function(arg)
             self.assertIn(key, tested_function._cache)
-            self.assertTrue(tested_function.cache_contains_key(key))
 
             self.assertEqual(exec_times[tested_function.__name__], 2)
             info = tested_function.cache_info()
@@ -868,7 +849,6 @@ class TestMemoization(unittest.TestCase):
                 custom_key_maker(a=50)]
         for key in keys:
             self.assertIn(key, tested_function._cache)
-            self.assertTrue(tested_function.cache_contains_key(key))
 
 
 if __name__ == '__main__':

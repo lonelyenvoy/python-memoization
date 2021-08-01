@@ -121,23 +121,6 @@ def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe, or
                 return values_toolkit.is_cache_value_valid(value) if alive_only else True
             return False
 
-    def cache_contains_key(key, alive_only=True):
-        """
-        Return True if the cache contains a cache item with the specified key. This function is only recommended to use
-        when you provide a custom key maker; otherwise, use cache_contains_argument() instead.
-
-        :param key:                 A key built by the default key maker or a custom key maker.
-
-        :param alive_only:          Whether to check alive cache item only (default to True).
-
-        :return:                    True if the desired cached item is present, False otherwise.
-        """
-        with lock:
-            value = cache.get(key, sentinel)
-            if value is not sentinel:
-                return values_toolkit.is_cache_value_valid(value) if alive_only else True
-            return False
-
     def cache_contains_result(return_value, alive_only=True):
         """
         Return True if the cache contains a cache item with the specified user function return value. O(n) time
@@ -186,7 +169,7 @@ def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe, or
         Remove all cache elements that satisfy the given predicate
 
         :param predicate:           a predicate function to judge whether the cache elements should be removed. Must
-                                    have 3 arguments:
+                                    have 3 arguments, and returns True or False:
                                       def consumer(user_function_arguments, user_function_result, is_alive): ...
                                     user_function_arguments is a tuple holding arguments in the form of (args, kwargs).
                                       args is a tuple holding positional arguments.
@@ -219,11 +202,9 @@ def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe, or
     wrapper.cache_is_empty = cache_is_empty
     wrapper.cache_is_full = cache_is_full
     wrapper.cache_contains_argument = cache_contains_argument
-    wrapper.cache_contains_key = cache_contains_key
     wrapper.cache_contains_result = cache_contains_result
     wrapper.cache_for_each = cache_for_each
     wrapper.cache_remove_if = cache_remove_if
-    wrapper.cache_make_key = make_key
     wrapper._cache = cache
 
     return wrapper

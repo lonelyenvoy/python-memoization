@@ -45,7 +45,7 @@ def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe, or
         """Return True if the cache is full"""
         return True
 
-    def cache_contains_argument(function_arguments, alive_only=False):
+    def cache_contains_argument(function_arguments, alive_only=True):
         """
         Return True if the cache contains a cached item with the specified function call arguments
 
@@ -67,33 +67,33 @@ def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe, or
                                       can be represented by:
                                         {'a': 4, 'b': 5, 'c': 6}
 
-        :param alive_only:          Whether to check alive cache item only (default to False).
+        :param alive_only:          Whether to check alive cache item only (default to True).
 
         :return:                    True if the desired cached item is present, False otherwise.
         """
         return False
 
-    def cache_contains_key(key, alive_only=False):
+    def cache_contains_key(key, alive_only=True):
         """
         Return True if the cache contains a cache item with the specified key. This function is only recommended to use
         when you provide a custom key maker; otherwise, use cache_contains_argument() instead.
 
         :param key:                 A key built by the default key maker or a custom key maker.
 
-        :param alive_only:          Whether to check alive cache item only (default to False).
+        :param alive_only:          Whether to check alive cache item only (default to True).
 
         :return:                    True if the desired cached item is present, False otherwise.
         """
         return False
 
-    def cache_contains_result(return_value, alive_only=False):
+    def cache_contains_result(return_value, alive_only=True):
         """
         Return True if the cache contains a cache item with the specified user function return value. O(n) time
         complexity.
 
         :param return_value:        A return value coming from the user function.
 
-        :param alive_only:          Whether to check alive cache item only (default to False).
+        :param alive_only:          Whether to check alive cache item only (default to True).
 
         :return:                    True if the desired cached item is present, False otherwise.
         """

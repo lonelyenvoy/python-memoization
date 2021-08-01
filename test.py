@@ -492,14 +492,23 @@ class TestMemoization(unittest.TestCase):
             self.assertFalse(tested_function.cache_contains_argument((100,), alive_only=True))
             self.assertFalse(tested_function.cache_contains_key(tested_function.cache_make_key((100,), None), alive_only=True))
             self.assertFalse(tested_function.cache_contains_result(100, alive_only=True))
+            self.assertTrue(tested_function.cache_contains_argument((100,), alive_only=False))
+            self.assertTrue(tested_function.cache_contains_key(tested_function.cache_make_key((100,), None), alive_only=False))
+            self.assertTrue(tested_function.cache_contains_result(100, alive_only=False))
 
             self.assertFalse(tested_function.cache_contains_argument({'keyword': 10}, alive_only=True))
             self.assertFalse(tested_function.cache_contains_key(tested_function.cache_make_key((), {'keyword': 10}), alive_only=True))
             self.assertFalse(tested_function.cache_contains_result(1, alive_only=True))
+            self.assertTrue(tested_function.cache_contains_argument({'keyword': 10}, alive_only=False))
+            self.assertTrue(tested_function.cache_contains_key(tested_function.cache_make_key((), {'keyword': 10}), alive_only=False))
+            self.assertTrue(tested_function.cache_contains_result(1, alive_only=False))
 
             self.assertFalse(tested_function.cache_contains_argument([(50, 2, 3, 4), {'keyword1': 5, 'keyword2': 6}], alive_only=True))
             self.assertFalse(tested_function.cache_contains_key(tested_function.cache_make_key((50, 2, 3, 4), {'keyword1': 5, 'keyword2': 6}), alive_only=True))
             self.assertFalse(tested_function.cache_contains_result(50, alive_only=True))
+            self.assertTrue(tested_function.cache_contains_argument([(50, 2, 3, 4), {'keyword1': 5, 'keyword2': 6}], alive_only=False))
+            self.assertTrue(tested_function.cache_contains_key(tested_function.cache_make_key((50, 2, 3, 4), {'keyword1': 5, 'keyword2': 6}), alive_only=False))
+            self.assertTrue(tested_function.cache_contains_result(50, alive_only=False))
 
     def test_memoization_for_cache_remove_if(self):
         for tested_function in (f33, f34, f35, f36):
@@ -545,8 +554,14 @@ class TestMemoization(unittest.TestCase):
 
             time.sleep(0.6)  # wait until cache expires
 
+            self.assertTrue(tested_function.cache_contains_argument((1,), alive_only=False))
+            self.assertFalse(tested_function.cache_contains_argument((1,), alive_only=True))
+
             tested_function(2)
             tested_function.cache_remove_if(is_dead)
+            self.assertFalse(tested_function.cache_contains_argument((1,), alive_only=False))
+            self.assertFalse(tested_function.cache_contains_argument((42,), alive_only=False))
+            self.assertFalse(tested_function.cache_contains_argument({'c': 42}, alive_only=False))
             self.assertFalse(tested_function.cache_contains_argument((1,), alive_only=True))
             self.assertFalse(tested_function.cache_contains_argument((42,), alive_only=True))
             self.assertFalse(tested_function.cache_contains_argument({'c': 42}, alive_only=True))

@@ -4,26 +4,20 @@ from memoization.model import DummyWithable, CacheInfo
 
 
 def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe, order_independent, custom_key_maker):
-    """
-    Get a caching wrapper for statistics only, without any actual caching
-    """
+    """Get a caching wrapper for statistics only, without any actual caching"""
 
     misses = 0                                          # number of misses of the cache
     lock = RLock() if thread_safe else DummyWithable()  # ensure thread-safe
 
     def wrapper(*args, **kwargs):
-        """
-        The actual wrapper
-        """
+        """The actual wrapper"""
         nonlocal misses
         with lock:
             misses += 1
         return user_function(*args, **kwargs)
 
     def cache_clear():
-        """
-        Clear the cache and statistics information
-        """
+        """Clear the cache and statistics information"""
         nonlocal misses
         with lock:
             misses = 0
@@ -31,6 +25,7 @@ def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe, or
     def cache_info():
         """
         Show statistics information
+
         :return: a CacheInfo object describing the cache
         """
         with lock:
@@ -88,7 +83,7 @@ def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe, or
 
     def cache_for_each(consumer):
         """
-        Perform the given action for each cache element in an order determined by the algorithm (FIFO) until all
+        Perform the given action for each cache element in an order determined by the algorithm until all
         elements have been processed or the action throws an error
 
         :param consumer:            an action function to process the cache elements. Must have 3 arguments:

@@ -8,9 +8,7 @@ import memoization.caching.general.values_without_ttl as values_toolkit_without_
 
 
 def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe, order_independent, custom_key_maker):
-    """
-    Get a caching wrapper for FIFO cache
-    """
+    """Get a caching wrapper for FIFO cache"""
 
     cache = {}                                                  # the cache to store function results
     key_argument_map = {}                                       # mapping from cache keys to user function arguments
@@ -39,9 +37,7 @@ def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe, or
     _VALUE = 3                                                  # index for the value
 
     def wrapper(*args, **kwargs):
-        """
-        The actual wrapper
-        """
+        """The actual wrapper"""
         nonlocal hits, misses, root, full
         key = make_key(args, kwargs)
         cache_expired = False
@@ -93,9 +89,7 @@ def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe, or
         return result
 
     def cache_clear():
-        """
-        Clear the cache and its statistics information
-        """
+        """Clear the cache and its statistics information"""
         nonlocal hits, misses, full
         with lock:
             cache.clear()
@@ -107,6 +101,7 @@ def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe, or
     def cache_info():
         """
         Show statistics information
+
         :return: a CacheInfo object describing the cache
         """
         with lock:
@@ -190,7 +185,7 @@ def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe, or
 
     def cache_for_each(consumer):
         """
-        Perform the given action for each cache element in an order determined by the algorithm (FIFO) until all
+        Perform the given action for each cache element in an order determined by the algorithm until all
         elements have been processed or the action throws an error
 
         :param consumer:            an action function to process the cache elements. Must have 3 arguments:

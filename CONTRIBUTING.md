@@ -26,7 +26,6 @@ class CachingAlgorithmFlag(enum.IntFlag):
     FIFO = 1    # First In First Out
     LRU = 2     # Least Recently Used
     LFU = 4     # Least Frequently Used
-
 ```
 
 By default, these three internal algorithms are registered. 
@@ -48,7 +47,7 @@ def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe):
 Note that you should also attach several members to the created wrapper, 
 so that users can do some operations. 
 
-This two functions are *required*:
+These two functions are *required*:
 
 ```python
 # To see the statistics information
@@ -58,17 +57,42 @@ wrapper.cache_info()
 wrapper.cache_clear()
 ```
 
-For testing purposes, this two members are *optional*, but recommended:
+These nine functions are *optional*, but recommended:
+
+```python
+# To see whether the cache is empty
+wrapper.cache_is_empty()
+
+# To see whether the cache is full
+wrapper.cache_is_full()
+
+# To see whether the cache contains a cached item with the specified function call arguments
+wrapper.cache_contains_argument(function_arguments, alive_only)
+
+# To see whether the cache contains a cache item with the specified user function return value
+wrapper.cache_contains_result(return_value, alive_only)
+
+# To perform the given action for each cache element
+wrapper.cache_for_each(consumer)
+
+# To get user function arguments of all alive cache elements
+wrapper.cache_arguments()
+
+# To get user function return values of all alive cache elements
+wrapper.cache_results()
+
+# To get cache items, i.e. entries of all alive cache elements, in the form of (argument, result)
+wrapper.cache_items()
+
+# To remove all cache elements that satisfy the given predicate
+wrapper.cache_remove_if(predicate)
+```
+
+For testing purposes, this member is *optional*, but recommended:
 ```python
 # Access to the cache which is typically a hash map with function 
 # arguments as its key and function return values as its value
 wrapper._cache
-
-# Get an ordered list which represents the internal caching orders,
-# from the most important key-value entry (aka the least possible one 
-# to be evicted from cache) to the least important one (aka the most 
-# possible one to be evicted)
-wrapper._get_caching_list()
 ```
 
 Please refer to `fifo_cache.py` as an example. Your code should looks like:
@@ -102,7 +126,6 @@ def get_caching_wrapper(user_function, max_size, ttl, algorithm, thread_safe):
     wrapper.cache_clear = cache_clear
     wrapper.cache_info = cache_info
     wrapper._cache = ...
-    wrapper._get_caching_list = ...
 
     return wrapper
 
@@ -156,4 +179,4 @@ your code pass them before you submit a pull request.
 
 ## Acknowledgements
 
-Thank you again, developer, for helping me improve this project.
+Thank you again, developer, for helping us improve this project.

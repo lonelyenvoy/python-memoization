@@ -223,6 +223,7 @@ With ```cache_info```, you can retrieve the number of ```hits``` and ```misses``
 ### Other APIs
 
 - Access the original undecorated function `f` by `f.__wrapped__`.
+- Clear the cache by `f.cache_clear()`.
 - Check whether the cache is empty by `f.cache_is_empty()`.
 - Check whether the cache is full by `f.cache_is_full()`.
 - Disable `SyntaxWarning` by `memoization.suppress_warnings()`.
